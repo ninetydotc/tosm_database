@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>救世者之樹M資料庫</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .sidebar-item.active {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .loader {
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #2563eb;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        :lang(ja) {
+            word-break: break-all;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        /* 分頁按鈕樣式 */
+        .pagination-btn {
+            @apply px-4 py-2 rounded-xl font-bold transition-all border text-sm;
+        }
+        .pagination-btn.active {
+            @apply bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100;
+        }
+        .pagination-btn.inactive {
+            @apply bg-white text-slate-500 border-slate-200 hover:bg-slate-50;
+        }
+        .pagination-btn.disabled {
+            @apply opacity-30 cursor-not-allowed;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-800">
+
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
+        <div class="p-6 border-b border-slate-100">
+            <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <div class="bg-blue-600 p-1.5 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <span>TOSM DB</span>
+            </h1>
+        </div>
+        
+        <nav class="flex-1 p-4 space-y-1">
+            <button class="sidebar-item active w-full text-left px-4 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                <span id="nav-cards-label">卡片</span>
+            </button>
+        </nav>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-100">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Language / 語言</label>
+            <div class="flex p-1 bg-white rounded-xl border border-slate-200">
+                <button onclick="changeLang('zh')" id="lang-zh" class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-blue-600 text-white shadow-sm">中文</button>
+                <button onclick="changeLang('ja')" id="lang-ja" class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-700">日本語</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto bg-slate-50/50">
+        <header class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 px-8 flex items-center justify-between">
+            <h2 id="header-title" class="font-bold text-slate-700 text-lg">救世者之樹M資料庫</h2>
+            <div id="status-container" class="flex items-center gap-2">
+                <div id="status-tag" class="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold border border-blue-100 flex items-center">
+                    <span id="status-dot" class="status-dot bg-blue-600 animate-pulse"></span>
+                    <span id="status-text">CONNECTING</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="app-container" class="p-8 max-w-6xl mx-auto pb-24">
+            <div id="search-module" class="bg-white rounded-3xl p-8 card-shadow border border-slate-200">
+                <!-- 第一排：等級、類型、稀有度 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <div>
+                        <label id="label-level" class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">等級 (Lv.1~20)</label>
+                        <select id="level-select" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-blue-600 outline-none transition-all cursor-pointer">
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label id="label-effect" class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">類型</label>
+                        <select id="effect-select" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none transition-all cursor-pointer">
+                        </select>
+                    </div>
+                    <div>
+                        <label id="label-rarity" class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">稀有度</label>
+                        <select id="rarity-select" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none transition-all cursor-pointer">
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 第二排：關鍵字、顯示筆數、按鈕 -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end border-t border-slate-100 pt-6">
+                    <div class="md:col-span-6">
+                        <label id="label-search" class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">關鍵字</label>
+                        <input type="text" id="query-input" placeholder="Name..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label id="label-limit" class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">顯示筆數</label>
+                        <select id="limit-select" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none transition-all cursor-pointer font-bold">
+                            <option value="3">3 筆</option>
+                            <option value="6" selected>6 筆</option>
+                            <option value="12">12 筆</option>
+                            <option value="18">18 筆</option>
+                            <option value="30">30 筆</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-4 flex items-center justify-end gap-3 h-[50px]">
+                        <button id="reset-btn" class="px-4 py-3 text-sm font-bold text-slate-400 hover:text-slate-600 transition-all">重設</button>
+                        <button id="search-btn" class="bg-slate-900 hover:bg-slate-800 text-white px-8 h-full rounded-2xl font-bold shadow-lg shadow-slate-200 transition-all flex items-center gap-2">
+                            <span id="btn-search-text">查詢</span>
+                            <div id="btn-loader" class="loader hidden"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex justify-between items-center">
+                    <span id="result-count" class="text-xs text-slate-400 font-medium">資料載入中...</span>
+                </div>
+
+                <div id="db-loader" class="flex flex-col items-center justify-center py-20">
+                    <div class="loader !w-10 !h-10 !border-4 mb-4"></div>
+                    <p class="text-slate-400 text-sm font-medium animate-pulse">Connecting to Firebase...</p>
+                </div>
+
+                <!-- 卡片顯示區域 -->
+                <div id="card-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10 hidden"></div>
+
+                <!-- 分頁導覽列 -->
+                <div id="pagination-container" class="mt-12 flex justify-center items-center gap-2 hidden">
+                    <!-- 由 JavaScript 動態生成 -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCxm-bJJGFgU9RWPOZf9CxIvvFBPMY82xw",
+            authDomain: "my-firebase-project-f7414.firebaseapp.com",
+            databaseURL: "https://my-firebase-project-f7414-default-rtdb.firebaseio.com",
+            projectId: "my-firebase-project-f7414",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        window.database = [];
+        window.isDataLoaded = false;
+
+        function updateUIStatus(status) {
+            const statusTag = document.getElementById('status-tag');
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+
+            if (status === 'connected') {
+                statusTag.className = "text-[10px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-bold border border-emerald-100 flex items-center";
+                statusDot.className = "status-dot bg-emerald-600";
+                statusText.innerText = "CONNECTED";
+            } else if (status === 'error') {
+                statusTag.className = "text-[10px] bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold border border-red-100 flex items-center";
+                statusDot.className = "status-dot bg-red-600";
+                statusText.innerText = "OFFLINE";
+            }
+        }
+
+        const cardRef = ref(db, 'tosm/data/card');
+        onValue(cardRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                window.database = Array.isArray(data) ? data : Object.values(data);
+                window.isDataLoaded = true;
+                updateUIStatus('connected');
+                document.getElementById('db-loader').classList.add('hidden');
+                document.getElementById('card-grid').classList.remove('hidden');
+                if (typeof window.performSearch === 'function') window.performSearch();
+            }
+        }, (error) => {
+            updateUIStatus('error');
+        });
+    </script>
+
+    <script>
+        let currentLang = 'zh';
+        let currentPage = 1;
+        let filteredDatabase = [];
+
+        const updatedEffectOptions = { 
+            zh: [ { val: 'ALL', lab: '全部 (All)' }, { val: '0', lab: '最大HP增加' }, { val: '1', lab: '最大SP增加' }, { val: '2', lab: '攻擊力增加' }, { val: '3', lab: '防禦力增加' }, { val: '4', lab: '格擋增加' }, { val: '5', lab: '命中增加' }, { val: '6', lab: '貫通增加' }, { val: '7', lab: '迴避增加' }, { val: '8', lab: '暴擊發生增加' }, { val: '9', lab: '暴擊抵抗增加' }, { val: '10', lab: '暴擊傷害增加' }, { val: '11', lab: '對火屬性對象攻擊時的傷害量' }, { val: '12', lab: '對冰屬性對象攻擊時的傷害量' }, { val: '13', lab: '對雷屬性對象攻擊時的傷害量' }, { val: '14', lab: '對土屬性對象攻擊時的傷害量' }, { val: '15', lab: '對闇屬性對象攻擊時的傷害量' }, { val: '16', lab: '對神聖屬性對象攻擊時的傷害量' }, { val: '17', lab: 'SP自然恢復增加' }, { val: '18', lab: '技能傷害增加' }, { val: '19', lab: '移動速度增加' }, { val: '20', lab: '攻擊速度增加' }, { val: '21', lab: '技能冷卻時間縮短' }, { val: '22', lab: '庫波魯冷卻時間縮短' }, { val: '23', lab: '受控狀態持續時間減少' }, { val: '24', lab: '普通攻擊SP恢復+' }, { val: '25', lab: '非戰鬥SP恢復+' }, { val: '26', lab: '暴擊發生時，傷害2倍' }, { val: '27', lab: '受到射擊攻擊時，格擋增加' }, { val: '28', lab: '受到物理攻擊時，格擋增加' }, { val: '29', lab: '受到射擊攻擊時，迴避增加' }, { val: '30', lab: '受到物理攻擊時，迴避增加' }, { val: '31', lab: '受到魔法攻擊時，迴避增加' }, { val: '32', lab: '對野獸型敵人造成的傷害量' }, { val: '33', lab: '對惡魔型敵人造成的傷害量' }, { val: '34', lab: '對昆蟲型敵人造成的傷害量' }, { val: '35', lab: '對變異型敵人造成的傷害量' }, { val: '36', lab: '對植物型敵人造成的傷害量' }, { val: '37', lab: '受到昆蟲型敵人傷害量減少' }, { val: '38', lab: '受到魔法攻擊時，受到的傷害量減少' }, { val: '39', lab: '同行夥伴每增加1人，玩家傷害增加量' }, { val: '40', lab: '物理系狀態異常無視率' }, { val: '41', lab: '對物理系狀態異常的敵人傷害增加' }, { val: '42', lab: '自身剩餘HP越多傷害量增加' }, { val: '43', lab: '對BOSS造成的傷害量' }, { val: '44', lab: '受到變異型敵人傷害量減少' }, { val: '45', lab: '受到BOSS傷害量減少' }, { val: '46', lab: '暴擊傷害+' }, { val: '47', lab: '元素系狀態異常無視率' }, { val: '48', lab: '對元素系狀態異常的敵人傷害增加' }, { val: '49', lab: '受到野獸型敵人傷害量減少' }, { val: '50', lab: '受到植物型敵人傷害量減少' }, { val: '51', lab: '夥伴受到的傷害減少' }, { val: '52', lab: '防禦力下降、攻擊力增加' }, { val: '53', lab: '精神系狀態異常無視率' }, { val: '54', lab: '對精神系狀態異常的敵人傷害增加' }, { val: '55', lab: '受到惡魔型敵人傷害量減少' }, { val: '56', lab: '受到射擊攻擊時，受到的傷害量減少' }, { val: '57', lab: '夥伴造成的傷害增加量' }, { val: '58', lab: '忍耐增加' }, { val: '59', lab: '庫波魯攻擊技能傷害增加' }, { val: '60', lab: '自身剩餘HP越少傷害量增加' } ], 
+            ja: [ { val: 'ALL', lab: 'すべて (All)' }, { val: '0', lab: '最大HPアップ' }, { val: '1', lab: '最大SPアップ' }, { val: '2', lab: '攻擊力アップ' }, { val: '3', lab: '防御力アップ' }, { val: '4', lab: 'ブロックアップ' }, { val: '5', lab: '命中アップ' }, { val: '6', lab: '貫通アップ' }, { val: '7', lab: '回避アップ' }, { val: '8', lab: 'クリティカル発生アップ' }, { val: '9', lab: 'クリティカル抵抗アップ' }, { val: '10', lab: 'クリティカルダメージアップ' }, { val: '11', lab: '火属性対象攻撃時のダメージ量' }, { val: '12', lab: '氷属性対象攻撃時のダメージ量' }, { val: '13', lab: '雷属性対象攻撃時のダメージ量' }, { val: '14', lab: '土属性対象攻撃時のダメージ量' }, { val: '15', lab: '闇属性対象攻撃時のダメージ量' }, { val: '16', lab: '神聖属性対象攻撃時のダメージ量' }, { val: '17', lab: 'SP自然回復アップ' }, { val: '18', lab: 'スキルダメージアップ' }, { val: '19', lab: '移動速度アッブ' }, { val: '20', lab: '攻擊速度アップ' }, { val: '21', lab: 'スキルクールタイム短縮' }, { val: '22', lab: 'クボルクールタイム短縮' }, { val: '23', lab: '制御狀態の持続時間ダウン' }, { val: '24', lab: '通常攻撃SP回復+' }, { val: '25', lab: '非戦闘SP回復 +' }, { val: '26', lab: 'クリティカル発生時、ダメージ2倍' }, { val: '27', lab: '射擊攻撃を受けた時 、ブロックアップ' }, { val: '28', lab: '物理攻撃を受けた時 、ブロックアップ' }, { val: '29', lab: '射擊攻撃を受けた時、回避アップ' }, { val: '30', lab: '物理攻撃を受けた時、回避アップ' }, { val: '31', lab: '魔法攻撃を受けた時、回避アップ' }, { val: '32', lab: '野獣型の敵へ與えるダメージ量' }, { val: '33', lab: '惡魔型の敵へ與えるダメージ量' }, { val: '34', lab: '昆蟲型の敵へ與えるダメージ量' }, { val: '35', lab: '変異型の敵へ與えるダメージ量' }, { val: '36', lab: '植物型の敵へ與えるダメージ量' }, { val: '37', lab: '昆蟲型の敵から受けるダメージ量' }, { val: '38', lab: '魔法攻撃を受けた時 、受けるダメージ量' }, { val: '39', lab: '同行中のフェローの人數 1人につき、プレイヤーが與えるダメージ量' }, { val: '40', lab: '物理系の狀態異常無視率' }, { val: '41', lab: '物理系の狀態異常の敵に対してダメージアップ' }, { val: '42', lab: '月的残りHPが多いほどダメージ量アップ' }, { val: '43', lab: 'ボスへ與えるダメージ量' }, { val: '44', lab: '変異型の敵から受けるダメージ量' }, { val: '45', lab: 'ボスから受けるダメージ量' }, { val: '46', lab: 'クリティカルダメージ+' }, { val: '47', lab: '元素系の狀態異常無視率' }, { val: '48', lab: '元素系的狀態異常の敵に対してダメージアップ' }, { val: '49', lab: '野獣型の敵から受けるダメージ量' }, { val: '50', lab: '植物型の敵から受けるダメージ量' }, { val: '51', lab: 'フェローの受けるダメージ' }, { val: '52', lab: '防御力ダウン、攻擊力アップ' }, { val: '53', lab: '精神系的狀態異常無視の率' }, { val: '54', lab: '精神系的狀態異常的敵に対してダメージアップ' }, { val: '55', lab: '惡魔型の敵から受けるダメージ量' }, { val: '56', lab: '射擊攻撃を受けた時 、受けるダメージ量' }, { val: '57', lab: 'フェローが與えるダメージ量' }, { val: '58', lab: '忍耐アップ' }, { val: '59', lab: 'クポルの攻擊スキルダメージアップ' }, { val: '60', lab: '月的残りHPが少ないほどダメージ量アップ' } ] 
+        };
+
+        const i18n = { 
+            zh: { navCards: "卡片", header: "救世者之樹M資料庫", search: "關鍵字", rarity: "稀有度", effect: "類型", level: "等級 (Lv.1~20)", limit: "顯示筆數", btnSearch: "查詢", btnReset: "重設", result: "找到 {n} 個結果 (第 {p} 頁)", noData: "查無此項資料", placeholder: "名稱...", lvLabel: "等級", options: { rarity: [ { val: 'ALL', lab: '全部 (All)' }, { val: 'Constellation', lab: '星座' }, { val: 'Goddess', lab: '女神' }, { val: 'Legend', lab: '傳說' }, { val: 'Hero', lab: '英雄' }, { val: 'Rare', lab: '稀少' }, { val: 'High', lab: '高級' }, { val: 'Normal', lab: '一般' }, { val: 'Training', lab: '修練' } ] } }, 
+            ja: { navCards: "カード", header: "Tree of Savior M DB", search: "キーワード", rarity: "レア度", effect: "タイプ", level: "レベル (Lv.1~20)", limit: "表示数", btnSearch: "検索", btnReset: "リセット", result: "{n} 件の結果 (第 {p} ページ)", noData: "データが見つかりません", placeholder: "名前...", lvLabel: "Lv", options: { rarity: [ { val: 'ALL', lab: 'すべて (All)' }, { val: 'Constellation', lab: '星座' }, { val: 'Goddess', lab: '女神' }, { val: 'Legend', lab: '伝説' }, { val: 'Hero', lab: '英雄' }, { val: 'Rare', lab: 'レア' }, { val: 'High', lab: '高級' }, { val: 'Normal', lab: '一般' }, { val: 'Training', lab: '修練' } ] } } 
+        };
+
+        function changeLang(lang) {
+            currentLang = lang;
+            const btnZh = document.getElementById('lang-zh');
+            const btnJa = document.getElementById('lang-ja');
+            if (lang === 'zh') {
+                btnZh.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-blue-600 text-white shadow-sm";
+                btnJa.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-700";
+            } else {
+                btnJa.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-blue-600 text-white shadow-sm";
+                btnZh.className = "flex-1 py-1.5 text-xs font-bold rounded-lg transition-all text-slate-500 hover:text-slate-700";
+            }
+            updateStaticTexts();
+            performSearch();
+        }
+
+        function updateStaticTexts() {
+            const t = i18n[currentLang];
+            document.getElementById('nav-cards-label').innerText = t.navCards;
+            document.getElementById('header-title').innerText = t.header;
+            document.getElementById('label-search').innerText = t.search;
+            document.getElementById('label-rarity').innerText = t.rarity;
+            document.getElementById('label-effect').innerText = t.effect;
+            document.getElementById('label-level').innerText = t.level;
+            document.getElementById('label-limit').innerText = t.limit;
+            document.getElementById('btn-search-text').innerText = t.btnSearch;
+            document.getElementById('reset-btn').innerText = t.btnReset;
+            document.getElementById('query-input').placeholder = t.placeholder;
+
+            const currentRarity = document.getElementById('rarity-select').value;
+            const currentEffect = document.getElementById('effect-select').value;
+            const raritySelect = document.getElementById('rarity-select');
+            const effectSelect = document.getElementById('effect-select');
+            
+            raritySelect.innerHTML = t.options.rarity.map(o => `<option value="${o.val}">${o.lab}</option>`).join('');
+            effectSelect.innerHTML = updatedEffectOptions[currentLang].map(o => `<option value="${o.val}">${o.lab}</option>`).join('');
+            
+            raritySelect.value = currentRarity || 'ALL';
+            effectSelect.value = currentEffect || 'ALL';
+
+            const limitSelect = document.getElementById('limit-select');
+            const limitSuffix = currentLang === 'zh' ? ' 筆' : ' 件';
+            Array.from(limitSelect.options).forEach(opt => {
+                opt.text = opt.value + limitSuffix;
+            });
+        }
+
+        function getRarityName(rarityVal) {
+            const rarityObj = i18n[currentLang].options.rarity.find(o => o.val === rarityVal);
+            return rarityObj ? rarityObj.lab : rarityVal;
+        }
+
+        window.performSearch = function(resetPage = true) {
+            if (!window.isDataLoaded) return;
+            if (resetPage) currentPage = 1;
+
+            const query = document.getElementById('query-input').value.toLowerCase();
+            const rarity = document.getElementById('rarity-select').value;
+            const effect = document.getElementById('effect-select').value;
+            const level = parseInt(document.getElementById('level-select').value);
+            const limit = parseInt(document.getElementById('limit-select').value);
+
+            filteredDatabase = window.database.filter(item => {
+                const nameZh = (item.name && item.name.zh) || "";
+                const nameJa = (item.name && item.name.ja) || "";
+                return (nameZh.toLowerCase().includes(query) || nameJa.toLowerCase().includes(query)) &&
+                       (rarity === 'ALL' || item.rarity === rarity) &&
+                       (effect === 'ALL' || item.effectTag === effect);
+            });
+            
+            updateDisplay(level, limit);
+        }
+
+        function updateDisplay(level, limit) {
+            const totalFound = filteredDatabase.length;
+            const totalPages = Math.ceil(totalFound / limit);
+            
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+
+            const startIndex = (currentPage - 1) * limit;
+            const slicedData = filteredDatabase.slice(startIndex, startIndex + limit);
+            
+            renderGrid(slicedData, level, totalFound);
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(totalPages) {
+            const container = document.getElementById('pagination-container');
+            if (totalPages <= 1) {
+                container.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+
+            let html = '';
+            html += `<button onclick="changePage(${currentPage - 1})" class="pagination-btn inactive ${currentPage === 1 ? 'disabled' : ''}" ${currentPage === 1 ? 'disabled' : ''}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>`;
+
+            let start = Math.max(1, currentPage - 2);
+            let end = Math.min(totalPages, start + 4);
+            if (end - start < 4) start = Math.max(1, end - 4);
+
+            for (let i = start; i <= end; i++) {
+                html += `<button onclick="changePage(${i})" class="pagination-btn ${i === currentPage ? 'active' : 'inactive'}">${i}</button>`;
+            }
+
+            html += `<button onclick="changePage(${currentPage + 1})" class="pagination-btn inactive ${currentPage === totalPages ? 'disabled' : ''}" ${currentPage === totalPages ? 'disabled' : ''}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>`;
+
+            container.innerHTML = html;
+        }
+
+        window.changePage = function(page) {
+            currentPage = page;
+            const level = parseInt(document.getElementById('level-select').value);
+            const limit = parseInt(document.getElementById('limit-select').value);
+            updateDisplay(level, limit);
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderGrid(items, level, totalFound) {
+            const grid = document.getElementById('card-grid');
+            document.getElementById('result-count').innerText = i18n[currentLang].result
+                .replace('{n}', totalFound)
+                .replace('{p}', currentPage);
+
+            if (items.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-20 text-center text-slate-400 font-medium">${i18n[currentLang].noData}</div>`;
+                return;
+            }
+
+            grid.innerHTML = items.map(item => {
+                const name = (item.name && item.name[currentLang]) || (item.name && item.name.zh) || (item.name && item.name.ja) || "Unknown";
+                const descTemplate = (item.desc && item.desc[currentLang]) || (item.desc && item.desc.zh) || (item.desc && item.desc.ja) || "No Info";
+                
+                const baseValue = item.valueBase || 0;
+                const m1 = item.valuePerLevel || 0;
+                const m2 = item.valuePerLevelLv11 !== undefined ? item.valuePerLevelLv11 : m1;
+                let finalValue = (level <= 10) ? baseValue + (level - 1) * m1 : (baseValue + 9 * m1) + (level - 10) * m2;
+                const finalDesc = descTemplate.replace('{v}', finalValue.toFixed(2));
+
+                const imageContent = item.img && (item.img.startsWith('http') || item.img.startsWith('data:image'))
+                    ? `<img src="${item.img}" class="h-28 w-28 object-contain">`
+                    : `<span class="text-5xl">${item.img || '❌'}</span>`;
+
+                return `
+                <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden hover:border-blue-300 transition-all group relative flex flex-col h-full">
+                    <div class="h-40 bg-slate-50 flex items-center justify-center relative shrink-0">
+                        ${imageContent}
+                        <span class="absolute top-3 right-3 text-base font-bold px-3 py-1 rounded-xl border ${getRarityStyle(item.rarity)}">${getRarityName(item.rarity)}</span>
+                        <span class="absolute bottom-3 left-3 bg-white/90 border border-slate-100 text-blue-600 px-3 py-1 rounded-lg text-base font-black shadow-sm">${i18n[currentLang].lvLabel} ${level}</span>
+                    </div>
+                    <div class="p-6 flex flex-col flex-1">
+                        <div class="mb-4 min-h-[3rem]"><h3 class="font-bold text-slate-800 text-base line-clamp-2">${name}</h3></div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex-1 flex items-center">
+                            <p class="text-xs text-slate-500 font-medium leading-relaxed">${finalDesc}</p>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function getRarityStyle(r) {
+            const styles = { Legend: 'bg-amber-50 text-amber-600 border-amber-200', Hero: 'bg-red-50 text-red-600 border-red-200', Rare: 'bg-purple-50 text-purple-600 border-purple-200', High: 'bg-blue-50 text-blue-600 border-blue-200', Constellation: 'bg-indigo-900 text-white border-indigo-950', Goddess: 'bg-sky-50 text-sky-600 border-sky-200', Normal: 'bg-emerald-50 text-emerald-600 border-emerald-200', Training: 'bg-slate-100 text-slate-500 border-slate-300' };
+            return styles[r] || 'bg-slate-50 text-slate-400 border-slate-200';
+        }
+
+        window.onload = () => {
+            document.getElementById('level-select').innerHTML = Array.from({length: 20}, (_, i) => `<option value="${i+1}" ${i+1===10 ? 'selected' : ''}>Lv. ${i+1}</option>`).join('');
+            updateStaticTexts();
+            document.getElementById('search-btn').onclick = () => window.performSearch(true);
+            document.getElementById('reset-btn').onclick = () => { 
+                document.getElementById('query-input').value = ''; 
+                document.getElementById('rarity-select').value = 'ALL';
+                document.getElementById('effect-select').value = 'ALL';
+                document.getElementById('level-select').value = '10';
+                document.getElementById('limit-select').value = '6';
+                performSearch(true); 
+            };
+            document.getElementById('level-select').onchange = () => window.performSearch(false);
+            document.getElementById('rarity-select').onchange = () => window.performSearch(true);
+            document.getElementById('effect-select').onchange = () => window.performSearch(true);
+            document.getElementById('limit-select').onchange = () => window.performSearch(true);
+            
+            document.getElementById('query-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') window.performSearch(true);
+            });
+        };
+    </script>
+</body>
+</html>
