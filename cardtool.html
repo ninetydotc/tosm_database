@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON 卡片資料庫生成器</title>
+    <title>JSON 卡片資料庫生成器 - GitHub Auth</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .custom-scrollbar::-webkit-scrollbar {
@@ -115,12 +115,19 @@
                        placeholder="例如: root.data.items">
             </div>
 
+            <!-- GitHub 連線區塊 -->
             <div class="flex items-center gap-3 bg-slate-900/50 p-2 rounded border border-slate-700 mt-1">
                 <div class="flex items-center gap-2">
                     <span id="connStatus" class="status-dot bg-gray-500"></span>
-                    <span class="text-[10px] text-slate-400 font-mono">Firebase</span>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-slate-400 font-mono">GitHub Auth</span>
+                        <span id="userInfo" class="text-[9px] text-blue-400 truncate max-w-[80px]">尚未登入</span>
+                    </div>
                 </div>
-                <button onclick="toggleFirebaseConn()" id="btnFbConn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded transition-colors">連線</button>
+                <button onclick="handleGitHubAuth()" id="btnFbConn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded transition-colors flex items-center gap-1">
+                    <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.61-4.041-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    <span>登入</span>
+                </button>
                 <button onclick="openFbConfig()" class="text-xs text-slate-400 hover:text-white transition-colors">⚙️</button>
                 <button onclick="manualPushFirebase()" id="btnFbPush" class="hidden text-xs bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded font-bold transition-colors">更新雲端</button>
             </div>
@@ -144,13 +151,15 @@
         </div>
     </header>
 
+    <!-- Firebase 設定 Modal -->
     <div id="firebaseModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
             <div class="p-4 border-b bg-gray-50 font-bold flex justify-between items-center">
-                <span>Firebase RTDB 專案設定</span>
+                <span>Firebase 專案金鑰設定</span>
                 <button onclick="closeFbConfig()" class="text-gray-400 hover:text-black">✕</button>
             </div>
             <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <p class="text-[10px] text-amber-600 bg-amber-50 p-2 rounded">請確保 Firebase 控制台已啟用 GitHub 登入方法。</p>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">API Key</label>
                     <input type="text" id="fb-apiKey" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none" placeholder="AIzaSy...">
@@ -273,7 +282,9 @@
 
     <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50"></div>
 
+    <!-- Firebase SDK 8.x -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
@@ -381,6 +392,7 @@
         let currentIndex = -1;
         let isFbConnected = false;
         let fbRef = null;
+        let currentUser = null;
 
         window.onload = () => {
             changeLanguage('zh');
@@ -391,7 +403,6 @@
         function openFbConfig() { document.getElementById('firebaseModal').style.display = 'flex'; }
         function closeFbConfig() { document.getElementById('firebaseModal').style.display = 'none'; }
         
-        // 載入完整的 4 個 Firebase 參數
         function loadFbConfig() { 
             document.getElementById('fb-apiKey').value = localStorage.getItem('fb_apiKey') || '';
             document.getElementById('fb-authDomain').value = localStorage.getItem('fb_authDomain') || '';
@@ -399,7 +410,6 @@
             document.getElementById('fb-projectId').value = localStorage.getItem('fb_projectId') || '';
         }
 
-        // 儲存完整的 4 個 Firebase 參數
         function saveFbConfig() {
             localStorage.setItem('fb_apiKey', document.getElementById('fb-apiKey').value);
             localStorage.setItem('fb_authDomain', document.getElementById('fb-authDomain').value);
@@ -407,70 +417,113 @@
             localStorage.setItem('fb_projectId', document.getElementById('fb-projectId').value);
             showToast("Firebase 設定已儲存");
             closeFbConfig();
+            
+            // 如果已連線，提醒需要重連
+            if (isFbConnected) showToast("參數已變更，請重新登入連線");
         }
 
-        function toggleFirebaseConn() {
+        // GitHub 登入邏輯
+        async function handleGitHubAuth() {
             if (isFbConnected) {
-                if (fbRef) fbRef.off();
-                isFbConnected = false;
-                updateStatusUI(false);
-                showToast("Firebase 已斷線");
-            } else {
-                const config = {
-                    apiKey: document.getElementById('fb-apiKey').value,
-                    authDomain: document.getElementById('fb-authDomain').value,
-                    databaseURL: document.getElementById('fb-url').value,
-                    projectId: document.getElementById('fb-projectId').value
-                };
-                
-                if (!config.databaseURL) return showToast("請至少填寫 Database URL");
-                
+                // 執行登出
                 try {
-                    if (firebase.apps.length > 0) {
-                        firebase.app().delete().then(() => initFirebase(config));
-                    } else {
-                        initFirebase(config);
-                    }
-                } catch (e) { 
-                    console.error(e);
-                    showToast("連線失敗，請檢查參數"); 
+                    await firebase.auth().signOut();
+                    if (fbRef) fbRef.off();
+                    isFbConnected = false;
+                    currentUser = null;
+                    updateStatusUI(false);
+                    showToast("已登出並斷開連線");
+                } catch (e) {
+                    showToast("登出失敗");
                 }
+                return;
+            }
+
+            // 執行登入
+            const config = {
+                apiKey: document.getElementById('fb-apiKey').value,
+                authDomain: document.getElementById('fb-authDomain').value,
+                databaseURL: document.getElementById('fb-url').value,
+                projectId: document.getElementById('fb-projectId').value
+            };
+
+            if (!config.apiKey || !config.authDomain || !config.databaseURL) {
+                return showToast("請先在設定中填寫完整的 Firebase 參數");
+            }
+
+            try {
+                // 初始化 Firebase (如果尚未初始化)
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp(config);
+                }
+
+                const provider = new firebase.auth.GithubAuthProvider();
+                
+                showToast("正在前往 GitHub 驗證...");
+                const result = await firebase.auth().signInWithPopup(provider);
+                currentUser = result.user;
+                
+                // 登入成功後初始化資料庫連線
+                initDatabaseConn();
+                
+                isFbConnected = true;
+                updateStatusUI(true);
+                showToast(`GitHub 登入成功: ${currentUser.displayName || currentUser.email}`);
+                
+            } catch (e) {
+                console.error(e);
+                showToast(`驗證失敗: ${e.message}`);
             }
         }
 
-        function initFirebase(config) {
-            firebase.initializeApp(config);
+        function initDatabaseConn() {
             const path = document.getElementById('configPath').value.replace(/\./g, '/');
             fbRef = firebase.database().ref(path);
+            
+            // 監聽資料
             fbRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data && Array.isArray(data)) {
-                    cards = data; renderList(); updatePreview(); showToast("已同步雲端資料");
+                    cards = data; 
+                    renderList(); 
+                    updatePreview(); 
+                    showToast("已從雲端同步最新卡片資料");
                 }
+            }, (error) => {
+                showToast(`資料讀取權限不足: ${error.message}`);
             });
-            isFbConnected = true; updateStatusUI(true); showToast("Firebase 連線成功");
         }
 
         function updateStatusUI(connected) {
             const statusDot = document.getElementById('connStatus');
             const btnConn = document.getElementById('btnFbConn');
             const btnPush = document.getElementById('btnFbPush');
-            if (connected) {
+            const userInfo = document.getElementById('userInfo');
+            
+            if (connected && currentUser) {
                 statusDot.className = 'status-dot bg-green-500';
-                btnConn.innerText = '中斷';
+                btnConn.innerHTML = '<span>登出</span>';
                 btnPush.classList.remove('hidden');
+                userInfo.innerText = currentUser.displayName || 'GitHub User';
+                userInfo.className = 'text-[9px] text-green-400 truncate max-w-[80px]';
             } else {
                 statusDot.className = 'status-dot bg-gray-500';
-                btnConn.innerText = '連線';
+                btnConn.innerHTML = `
+                    <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.61-4.041-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    <span>登入</span>
+                `;
                 btnPush.classList.add('hidden');
+                userInfo.innerText = '尚未登入';
+                userInfo.className = 'text-[9px] text-slate-400 truncate max-w-[80px]';
             }
         }
 
         function manualPushFirebase() {
             if (!isFbConnected || !fbRef) return;
-            fbRef.set(cards).then(() => showToast("雲端資料已手動更新！"));
+            fbRef.set(cards).then(() => showToast("雲端資料已手動更新！")).catch(e => showToast(`推送失敗: ${e.message}`));
         }
 
+        // 基本介面功能保持不變
         function changeLanguage(lang) {
             currentLang = lang;
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.id === `lang-${lang}`));
@@ -587,13 +640,7 @@
 
         function addNewCard() {
             const newCard = { 
-                id: "", 
-                img: "❌", 
-                rarity: "Hero", 
-                effectTag: "ALL", 
-                valueBase: 0, 
-                valuePerLevel: 0, 
-                valuePerLevelLv11: 0, 
+                id: "", img: "❌", rarity: "Hero", effectTag: "ALL", valueBase: 0, valuePerLevel: 0, valuePerLevelLv11: 0, 
                 name: { zh: "新卡片", ja: "新カード" }, 
                 desc: { zh: "效果內容 +{v}", ja: "効果内容 +{v}" } 
             };
@@ -635,18 +682,15 @@
         
         function copyToClipboard(txt) { 
             const el = document.createElement('textarea'); 
-            el.value = txt; 
-            document.body.appendChild(el); 
-            el.select(); 
-            document.execCommand('copy'); 
+            el.value = txt; document.body.appendChild(el); 
+            el.select(); document.execCommand('copy'); 
             document.body.removeChild(el); 
         }
 
         function importJSON() { document.getElementById('fileInput').click(); }
         
         function handleFileSelect(e) {
-            const file = e.target.files[0]; 
-            if (!file) return;
+            const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = (ev) => {
                 try {
@@ -656,8 +700,7 @@
                     if (path) path.split('.').forEach(k => { if (data && data[k]) data = data[k]; });
                     cards = Array.isArray(data) ? data : []; 
                     currentIndex = -1;
-                    renderList(); 
-                    updatePreview();
+                    renderList(); updatePreview();
                     document.getElementById('editorPanel').classList.add('hidden'); 
                     document.getElementById('noSelection').classList.remove('hidden');
                     showToast(i18n[currentLang].msgImported);
@@ -674,13 +717,10 @@
         }
 
         function showToast(msg) {
-            const t = document.getElementById('toast'); 
-            if (!t) return;
+            const t = document.getElementById('toast'); if (!t) return;
             t.innerText = msg;
             t.classList.replace('opacity-0', 'opacity-100');
-            setTimeout(() => {
-                if (t) t.classList.replace('opacity-100', 'opacity-0');
-            }, 2000);
+            setTimeout(() => { if (t) t.classList.replace('opacity-100', 'opacity-0'); }, 2000);
         }
     </script>
 </body>
