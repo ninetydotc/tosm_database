@@ -482,8 +482,8 @@
             const effectObj = effectOptions.find(o => o.val === effectTag);
             
             if (effectObj && effectTag !== 'ALL') {
-                document.getElementById('edit-desc-zh').value = `${effectObj.zh} +{v}`;
-                document.getElementById('edit-desc-ja').value = `${effectObj.ja} +{v}`;
+                document.getElementById('edit-desc-zh').value = `${effectObj.zh}+{v}%`;
+                document.getElementById('edit-desc-ja').value = `${effectObj.ja}+{v}%`;
             }
             updateCurrentData();
         }
