@@ -3,140 +3,329 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON 卡片資料庫生成器</title>
+    <title>JSON 卡片資料庫生成器 - GitHub Auth</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
-        #h-resizer { cursor: ns-resize; }
-        #v-resizer { cursor: col-resize; }
-        .lang-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
-        .card-icon-container { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
-        .card-icon-img { width: 100%; height: 100%; object-fit: contain; }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        #cardList {
+            scroll-behavior: smooth;
+        }
+        #h-resizer {
+            cursor: ns-resize;
+            transition: background 0.2s;
+        }
+        #h-resizer:hover {
+            background: #3b82f6;
+        }
+        #v-resizer {
+            cursor: col-resize;
+            transition: background 0.2s;
+        }
+        #v-resizer:hover {
+            background: #3b82f6;
+        }
+        .resizing-v {
+            cursor: col-resize;
+            user-select: none;
+        }
+        .resizing-h {
+            cursor: ns-resize;
+            user-select: none;
+        }
+        .card-icon-container {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 1px solid #e2e8f0;
+        }
+        .card-icon-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .card-icon-emoji {
+            font-size: 28px;
+        }
+        .lang-btn {
+            transition: all 0.2s;
+        }
+        .lang-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .title-wrapped {
+            width: 8.5rem; 
+            display: inline-block;
+            word-break: break-all;
+            line-height: 1.2;
+            vertical-align: top;
+        }
+        .btn-text-wrapped {
+            display: inline-block;
+            width: 4.5rem; 
+            word-break: break-all;
+            line-height: 1.2;
+            vertical-align: middle;
+            text-align: center;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        #firebaseModal {
+            background: rgba(0,0,0,0.5);
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gray-50 h-screen overflow-hidden flex flex-col font-sans text-slate-900">
 
-    <header class="bg-slate-800 text-white p-4 shadow-md flex justify-between items-center z-10">
-        <div class="flex items-center gap-4">
-            <h1 class="text-xl font-bold flex items-center gap-2">
-                <span>📇</span> <span data-i18n="title">卡片資料庫工具</span>
+    <header class="bg-slate-800 text-white p-4 shadow-md flex flex-wrap justify-between items-start z-10 gap-4">
+        <div class="flex items-start gap-4">
+            <h1 class="text-xl font-bold flex items-start gap-2 shrink-0">
+                <span class="mt-1">📇</span> 
+                <span data-i18n="title" class="title-wrapped">卡片資料庫工具</span>
             </h1>
-            <div class="flex items-center bg-slate-700 rounded px-3 py-1 text-sm border border-slate-600">
-                <span class="text-slate-400 mr-2" data-i18n="pathLabel">路徑:</span>
-                <input type="text" id="configPath" value="tosm.data.card" oninput="updatePreview()" class="bg-transparent text-blue-300 outline-none w-48 font-mono">
+            <div class="flex items-center bg-slate-700 rounded px-3 py-1 text-sm border border-slate-600 mt-1">
+                <span class="text-slate-400 mr-2 shrink-0" data-i18n="pathLabel">路徑層級:</span>
+                <input type="text" id="configPath" value="tosm.data.card" 
+                       oninput="updatePreview()"
+                       class="bg-transparent text-blue-300 outline-none w-48 font-mono" 
+                       placeholder="例如: root.data.items">
+            </div>
+
+            <div class="flex items-center gap-3 bg-slate-900/50 p-2 rounded border border-slate-700 mt-1">
+                <div class="flex items-center gap-2">
+                    <span id="connStatus" class="status-dot bg-gray-500"></span>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-slate-400 font-mono">GitHub Auth</span>
+                        <span id="userInfo" class="text-[9px] text-blue-400 truncate max-w-[80px]">尚未登入</span>
+                    </div>
+                </div>
+                <button onclick="handleGitHubAuth()" id="btnFbConn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded transition-colors flex items-center gap-1">
+                    <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.61-4.041-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    <span>登入</span>
+                </button>
+                <button onclick="openFbConfig()" class="text-xs text-slate-400 hover:text-white transition-colors">⚙️</button>
+                <button onclick="manualPushFirebase()" id="btnFbPush" class="hidden text-xs bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded font-bold transition-colors">更新雲端</button>
             </div>
         </div>
         
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 mt-1">
             <div class="flex bg-slate-700 rounded p-1 border border-slate-600">
-                <button onclick="changeLanguage('zh')" id="lang-zh" class="lang-btn px-3 py-1 rounded text-sm text-slate-300">繁中</button>
-                <button onclick="changeLanguage('ja')" id="lang-ja" class="lang-btn px-3 py-1 rounded text-sm text-slate-300">日本語</button>
+                <button onclick="changeLanguage('zh')" id="lang-zh" class="lang-btn px-3 py-1 rounded text-sm text-slate-300 hover:text-white">繁中</button>
+                <button onclick="changeLanguage('ja')" id="lang-ja" class="lang-btn px-3 py-1 rounded text-sm text-slate-300 hover:text-white">日本語</button>
             </div>
-            <button onclick="importJSON()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm transition" data-i18n="btnImport">匯入 JSON</button>
-            <button onclick="exportJSON()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm transition" data-i18n="btnExport">匯出 JSON</button>
-            <input type="file" id="fileInput" class="hidden" accept=".json" onchange="handleFileSelect(event)">
+
+            <div class="flex items-center gap-2">
+                <button onclick="importJSON()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition flex items-center justify-center min-h-[44px]">
+                    <span data-i18n="btnImport" class="btn-text-wrapped">匯入 JSON</span>
+                </button>
+                <button onclick="exportJSON()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition flex items-center justify-center min-h-[44px]">
+                    <span data-i18n="btnExport" class="btn-text-wrapped">匯出 JSON</span>
+                </button>
+                <input type="file" id="fileInput" class="hidden" accept=".json" onchange="handleFileSelect(event)">
+            </div>
         </div>
     </header>
 
+    <!-- Firebase 設定 Modal -->
+    <div id="firebaseModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="p-4 border-b bg-gray-50 font-bold flex justify-between items-center">
+                <span>Firebase 專案金鑰設定</span>
+                <button onclick="closeFbConfig()" class="text-gray-400 hover:text-black">✕</button>
+            </div>
+            <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">API Key</label>
+                    <input type="text" id="fb-apiKey" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">Auth Domain</label>
+                    <input type="text" id="fb-authDomain" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">Database URL</label>
+                    <input type="text" id="fb-url" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">Project ID</label>
+                    <input type="text" id="fb-projectId" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none">
+                </div>
+            </div>
+            <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
+                <button onclick="closeFbConfig()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded">取消</button>
+                <button onclick="saveFbConfig()" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
     <main class="flex-1 flex overflow-hidden">
-        <!-- 列表區 -->
-        <aside id="sidebar" class="w-80 bg-white border-r border-gray-200 flex flex-col shrink-0">
-            <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
-                <h2 class="font-semibold text-gray-700"><span data-i18n="listTitle">卡片列表</span> (<span id="cardCount">0</span>)</h2>
-                <button onclick="addNewCard()" class="bg-blue-100 text-blue-600 hover:bg-blue-200 w-8 h-8 rounded-full flex items-center justify-center font-bold transition">+</button>
+        <aside id="sidebar" class="w-80 bg-white border-r border-gray-200 flex flex-col shrink-0 min-w-[200px] max-w-[600px]">
+            <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <h2 class="font-semibold text-gray-700 truncate">
+                    <span data-i18n="listTitle">卡片列表</span> (<span id="cardCount">0</span>)
+                </h2>
+                <button onclick="addNewCard()" class="bg-blue-100 text-blue-600 hover:bg-blue-200 w-8 h-8 rounded-full flex items-center justify-center font-bold transition shrink-0">+</button>
             </div>
             <div id="cardList" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2"></div>
         </aside>
 
         <div id="v-resizer" class="w-1 bg-gray-200 hover:bg-blue-400 shrink-0 z-20"></div>
 
-        <!-- 編輯區 -->
         <section id="editorSection" class="flex-1 flex flex-col overflow-hidden bg-white">
             <div id="noSelection" class="flex-1 flex items-center justify-center text-gray-400">
-                <p data-i18n="noSelect">請選擇左側卡片或點擊「+」新增資料</p>
+                <div class="text-center">
+                    <p class="text-5xl mb-4">📝</p>
+                    <p data-i18n="noSelect">請選擇左側卡片或點擊「+」新增資料</p>
+                </div>
             </div>
 
             <div id="editorPanel" class="hidden flex-1 flex flex-col overflow-hidden">
-                <div id="topPanel" class="flex-[2] overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-lg text-gray-800" data-i18n="editArea">編輯區域</h3>
-                        <button onclick="handleDeleteCard()" class="text-red-600 hover:text-red-800 text-sm font-bold" data-i18n="btnDelete">刪除此卡片</button>
+                <div id="topPanel" class="flex-[2] flex flex-col min-h-[100px]">
+                    <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                        <h3 class="font-bold text-gray-800" data-i18n="editArea">編輯區域</h3>
+                        <button type="button" onclick="handleDeleteCard()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+                            <span>🗑️</span>
+                            <span data-i18n="btnDelete">刪除此卡片</span>
+                        </button>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-4">
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">ID</label><input type="text" id="edit-id" oninput="updateCurrentData()" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="labelImg">圖示</label><input type="text" id="edit-img" oninput="updateCurrentData()" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="labelRarity">稀有度</label><select id="edit-rarity" onchange="updateCurrentData()" class="w-full border rounded p-2 outline-none"></select></div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="md:col-span-1">
-                            <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="labelEffect">效果標籤</label>
-                            <select id="edit-effectTag" onchange="handleEffectChange()" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                    <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="labelId">ID</label>
+                                <input type="text" id="edit-id" oninput="updateCurrentData()" placeholder="例如: card_001" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="labelImg">圖示</label>
+                                <input type="text" id="edit-img" oninput="updateCurrentData()" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="labelRarity">稀有度</label>
+                                <select id="edit-rarity" onchange="updateCurrentData()" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
                         </div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">ValueBase</label><input type="number" id="edit-vbase" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Value/Lv</label><input type="number" id="edit-vpl" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Value/Lv11</label><input type="number" id="edit-vpl11" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
-                    </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-xs text-gray-500 mb-1">中文名稱</label><input type="text" id="edit-name-zh" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
-                        <div><label class="block text-xs text-gray-500 mb-1">日文名稱</label><input type="text" id="edit-name-ja" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
-                    </div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="labelEffect">效果標籤</label>
+                                <select id="edit-effectTag" onchange="handleEffectChange()" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                            </div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">ValueBase</label><input type="number" id="edit-vbase" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">Value/Lv</label><input type="number" id="edit-vpl" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">Value/Lv11</label><input type="number" id="edit-vpl11" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
+                        </div>
 
-                    <div class="space-y-3">
-                        <div><label class="block text-xs text-gray-500 mb-1">中文描述</label><input type="text" id="edit-desc-zh" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
-                        <div><label class="block text-xs text-gray-500 mb-1">日文描述</label><input type="text" id="edit-desc-ja" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
+                        <hr>
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2 text-blue-600" data-i18n="groupName">卡片名稱</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="block text-xs text-gray-500 mb-1">中文</label><input type="text" id="edit-name-zh" oninput="updateCurrentData()" class="w-full border rounded p-2 outline-none"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">日文</label><input type="text" id="edit-name-ja" oninput="updateCurrentData()" class="w-full border rounded p-2 outline-none"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <h4 class="font-semibold text-gray-700 text-blue-600" data-i18n="groupDesc">卡片敘述</h4>
+                                <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded border border-amber-200" data-i18n="descNotice">注意: {v} 為參數值</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div><label class="block text-xs text-gray-500 mb-1">中文描述</label><input type="text" id="edit-desc-zh" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
+                                <div><label class="block text-xs text-gray-500 mb-1">日文描述</label><input type="text" id="edit-desc-ja" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div id="h-resizer" class="h-1 bg-gray-300 hover:bg-blue-400 shrink-0 z-20"></div>
 
-                <div id="bottomPanel" class="flex-1 flex flex-col bg-gray-900 overflow-hidden">
-                    <div class="px-4 py-2 text-gray-400 text-xs font-mono flex justify-between">
-                        <span>JSON PREVIEW</span>
-                        <button onclick="copyFullJSON()" class="hover:text-white">COPY ALL</button>
+                <div id="bottomPanel" class="flex-1 flex flex-col min-h-[50px]">
+                    <div class="px-4 py-2 bg-gray-800 text-gray-400 text-xs font-mono shrink-0 flex justify-between items-center">
+                        <span data-i18n="previewLabel">JSON 即時預覽</span>
+                        <div class="flex gap-4">
+                            <button onclick="copyFullJSON()" class="hover:text-white transition" data-i18n="btnCopyFull">複製全域 JSON</button>
+                            <button onclick="copyCurrentJSON()" class="hover:text-white transition" data-i18n="btnCopySingle">複製單筆 JSON</button>
+                        </div>
                     </div>
-                    <pre id="jsonPreview" class="flex-1 overflow-auto p-4 text-green-400 font-mono text-sm custom-scrollbar"></pre>
+                    <div class="flex-1 overflow-auto bg-gray-900 p-4 custom-scrollbar">
+                        <pre id="jsonPreview" class="text-green-400 font-mono text-sm"></pre>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full opacity-0 transition-opacity pointer-events-none z-50"></div>
+    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
+        const rarityOptions = [
+            { val: 'Constellation', lab: { zh: '星座', ja: '星座' } },
+            { val: 'Goddess', lab: { zh: '女神', ja: '女神' } },
+            { val: 'Legend', lab: { zh: '傳說', ja: '伝説' } },
+            { val: 'Hero', lab: { zh: '英雄', ja: '英雄' } },
+            { val: 'Rare', lab: { zh: '稀少', ja: '希少' } },
+            { val: 'High', lab: { zh: '高級', ja: '高級' } },
+            { val: 'Normal', lab: { zh: '一般', ja: '一般' } },
+            { val: 'Training', lab: { zh: '修練', ja: '修練' } }
+        ];
+
+        // 完整 62 項效果標籤數據
         const effectOptions = [
             { val: 'ALL', zh: '全部 (All)', ja: 'すべて (All)' },
-            { val: '0', zh: '最大 HP 提升', ja: '最大HPアップ' },
-            { val: '1', zh: '最大 SP 提升', ja: '最大SPアップ' },
+            { val: '0', zh: '最大HP提升', ja: '最大HPアップ' },
+            { val: '1', zh: '最大SP提升', ja: '最大SPアップ' },
             { val: '2', zh: '攻擊力提升', ja: '攻撃力アップ' },
             { val: '3', zh: '防禦力提升', ja: '防御力アップ' },
             { val: '4', zh: '格擋提升', ja: 'ブロックアップ' },
             { val: '5', zh: '命中提升', ja: '命中アップ' },
-            { val: '6', zh: '貫通提升', ja: '貫通アップ' },
+            { val: '6', zh: '貫穿提升', ja: '貫通アップ' },
             { val: '7', zh: '迴避提升', ja: '回避アップ' },
             { val: '8', zh: '暴擊發生提升', ja: 'クリティカル発生アップ' },
             { val: '9', zh: '暴擊抵抗提升', ja: 'クリティカル抵抗アップ' },
             { val: '10', zh: '暴擊傷害提升', ja: 'クリティカルダメージアップ' },
-            { val: '11', zh: '火屬性對象攻擊時傷害量', ja: '火属性対象攻撃時のダメージ量' },
-            { val: '12', zh: '冰屬性對象攻擊時傷害量', ja: '氷属性対象攻撃時のダメージ量' },
-            { val: '13', zh: '雷屬性對象攻擊時傷害量', ja: '雷属性対象攻撃時のダメージ量' },
-            { val: '14', zh: '土屬性對象攻擊時傷害量', ja: '土属性対象攻撃時のダメージ量' },
-            { val: '15', zh: '暗屬性對象攻擊時傷害量', ja: '闇属性対象攻撃時のダメージ量' },
-            { val: '16', zh: '神聖屬性對象攻擊時傷害量', ja: '神聖属性対象攻撃時のダメージ量' },
-            { val: '17', zh: 'SP 自然恢復提升', ja: 'SP自然回復アップ' },
+            { val: '11', zh: '對火屬性對象攻擊時的傷害量', ja: '火属性対象攻撃時のダメージ量' },
+            { val: '12', zh: '對冰屬性對象攻擊時的傷害量', ja: '氷属性対象攻撃時のダメージ量' },
+            { val: '13', zh: '對雷屬性對象攻擊時的傷害量', ja: '雷属性対象攻撃時のダメージ量' },
+            { val: '14', zh: '對土屬性對象攻擊時的傷害量', ja: '土属性対象攻撃時のダメージ量' },
+            { val: '15', zh: '對闇屬性對象攻擊時的傷害量', ja: '闇属性対象攻撃時のダメージ量' },
+            { val: '16', zh: '對神聖屬性對象攻擊時的傷害量', ja: '神聖属性対象攻撃時のダメージ量' },
+            { val: '17', zh: 'SP自然恢復提升', ja: 'SP自然回復アップ' },
             { val: '18', zh: '技能傷害提升', ja: 'スキルダメージアップ' },
             { val: '19', zh: '移動速度提升', ja: '移動速度アップ' },
             { val: '20', zh: '攻擊速度提升', ja: '攻撃速度アップ' },
             { val: '21', zh: '技能冷卻時間縮短', ja: 'スキルクールタイム短縮' },
             { val: '22', zh: '庫波爾冷卻時間縮短', ja: 'クポルクールタイム短縮' },
-            { val: '23', zh: '控制狀態持續時間減少', ja: '制御状態の持続時間ダウン' },
-            { val: '24', zh: '普攻 SP 恢復+', ja: '通常攻撃SP回復+' },
-            { val: '25', zh: '非戰鬥 SP 恢復+', ja: '非戦闘SP回復+' },
-            { val: '26', zh: '暴擊發生時傷害 2 倍', ja: 'クリティカル発生時、ダメージ2倍' },
+            { val: '23', zh: '受控制狀態的持續時間減少', ja: '制御状態の持続時間ダウン' },
+            { val: '24', zh: '普通攻擊SP恢復+', ja: '通常攻撃SP回復+' },
+            { val: '25', zh: '非戰鬥SP恢復+', ja: '非戦闘SP回復+' },
+            { val: '26', zh: '暴擊發生時，傷害2倍', ja: 'クリティカル発生時、ダメージ2倍' },
             { val: '27', zh: '受到射擊攻擊時，格擋提升', ja: '射撃攻撃を受けた時、ブロックアップ' },
             { val: '28', zh: '受到物理攻擊時，格擋提升', ja: '物理攻撃を受けた時、ブロックアップ' },
             { val: '29', zh: '受到魔法攻擊時，格擋提升', ja: '魔法攻撃を受けた時、ブロックアップ' },
@@ -144,24 +333,24 @@
             { val: '31', zh: '受到物理攻擊時，迴避提升', ja: '物理攻撃を受けた時、回避アップ' },
             { val: '32', zh: '受到魔法攻擊時，迴避提升', ja: '魔法攻撃を受けた時、回避アップ' },
             { val: '33', zh: '對野獸型敵人造成的傷害量', ja: '野獣型の敵へ与えるダメージ量' },
-            { val: '34', zh: '對惡魔型敵人造成的傷害量', ja: '悪魔型の敵へ与えるダメージ量' },
+            { val: '34', zh: '對惡魔型敵人造成的傷害量', ja: '惡魔型の敵へ与えるダメージ量' },
             { val: '35', zh: '對昆蟲型敵人造成的傷害量', ja: '昆虫型の敵へ与えるダメージ量' },
-            { val: '36', zh: '對變異型敵人造成的傷害量', ja: '變異型の敵へ与えるダメージ量' },
+            { val: '36', zh: '對變異型敵人造成的傷害量', ja: '変異型の敵へ与えるダメージ量' },
             { val: '37', zh: '對植物型敵人造成的傷害量', ja: '植物型の敵へ与えるダメージ量' },
-            { val: '38', zh: '對王怪造成的傷害量', ja: 'ボスへ与えるダメージ量' },
+            { val: '38', zh: '對Boss造成的傷害量', ja: 'ボスへ与えるダメージ量' },
             { val: '39', zh: '從野獸型敵人受到的傷害量', ja: '野獣型の敵から受けるダメージ量' },
-            { val: '40', zh: '從惡魔型敵人受到的傷害量', ja: '悪魔型の敵から受けるダメージ量' },
+            { val: '40', zh: '從惡魔型敵人受到的傷害量', ja: '惡魔型の敵から受けるダメージ量' },
             { val: '41', zh: '從昆蟲型敵人受到的傷害量', ja: '昆虫型の敵から受けるダメージ量' },
             { val: '42', zh: '從變異型敵人受到的傷害量', ja: '変異型の敵から受けるダメージ量' },
             { val: '43', zh: '從植物型敵人受到的傷害量', ja: '植物型の敵から受けるダメージ量' },
             { val: '44', zh: '受到物理攻擊時，受到的傷害量', ja: '物理攻撃を受けた時 、受けるダメージ量' },
             { val: '45', zh: '受到射擊攻擊時，受到的傷害量', ja: '射撃攻撃を受けた時 、受けるダメージ量' },
             { val: '46', zh: '受到魔法攻擊時，受到的傷害量', ja: '魔法攻撃を受けた時 、受けるダメージ量' },
-            { val: '47', zh: '從王怪受到的傷害量', ja: 'ボスから受けるダメージ量' },
-            { val: '48', zh: '夥伴受到的傷害量', ja: 'フェローの受けるダメージ' },
-            { val: '49', zh: '夥伴造成的傷害量', ja: 'フェローが与えるダメージ量' },
-            { val: '50', zh: '同行夥伴每增加1人，玩家造成的傷害量', ja: '同行中のフェローの人数1人につき、プレイヤーが與えるダメージ量' },
-            { val: '51', zh: '暴擊傷害 +', ja: 'クリティカルダメージ+' },
+            { val: '47', zh: '從Boss受到的傷害量', ja: 'ボスから受けるダメージ量' },
+            { val: '48', zh: '夥伴(Fellow)受到的傷害', ja: 'フェローの受けるダメージ' },
+            { val: '49', zh: '夥伴(Fellow)造成的傷害量', ja: 'フェローが与えるダメージ量' },
+            { val: '50', zh: '同行中的夥伴每增加1人，玩家造成的傷害量', ja: '同行中のフェローの人数1人につき、プレイヤーが与えるダメージ量' },
+            { val: '51', zh: '暴擊傷害+', ja: 'クリティカルダメージ+' },
             { val: '52', zh: '防禦力下降，攻擊力提升', ja: '防御力ダウン、攻撃力アップ' },
             { val: '53', zh: '忍耐提升', ja: '忍耐アップ' },
             { val: '54', zh: '物理系狀態異常無視率', ja: '物理系の状態異常無視率' },
@@ -171,40 +360,52 @@
             { val: '58', zh: '對精神系狀態異常的敵人傷害提升', ja: '精神系の状態異常の敵に対してダメージアップ' },
             { val: '59', zh: '對元素系狀態異常的敵人傷害提升', ja: '元素系の状態異常の敵に対してダメージアップ' },
             { val: '60', zh: '對物理系狀態異常的敵人傷害提升', ja: '物理系の状態異常の敵に対してダメージアップ' },
-            { val: '61', zh: '自身剩餘 HP 越少，傷害量提升', ja: '自身の残りHPが少ないほどダメージ量アップ' },
-            { val: '62', zh: '自身剩餘 HP 越多，傷害量提升', ja: '自身的残りHPが多いほどダメージ量アップ' }
-        ];
-
-        const rarityOptions = [
-            { val: 'Constellation', zh: '星座', ja: '星座' },
-            { val: 'Goddess', zh: '女神', ja: '女神' },
-            { val: 'Legend', zh: '傳說', ja: '伝説' },
-            { val: 'Hero', zh: '英雄', ja: '英雄' },
-            { val: 'Rare', zh: '稀少', ja: '希少' }
+            { val: '61', zh: '自身殘餘HP越少傷害量提升', ja: '自身の残りHPが少ないほどダメージ量アップ' },
+            { val: '62', zh: '自身殘餘HP越多傷害量提升', ja: '自身の残りHPが多いほどダメージ量アップ' }
         ];
 
         const i18n = {
-            zh: { title: "卡片資料庫工具", pathLabel: "路徑:", btnImport: "匯入 JSON", btnExport: "匯出 JSON", listTitle: "卡片列表", noSelect: "請選擇卡片或點擊「+」", editArea: "編輯區域", btnDelete: "刪除卡片", labelImg: "圖示", labelRarity: "稀有度", labelEffect: "效果標籤" },
-            ja: { title: "カードデータベース", pathLabel: "パス:", btnImport: "インポート", btnExport: "エクスポート", listTitle: "カード一覧", noSelect: "カードを選択してください", editArea: "編集エリア", btnDelete: "削除", labelImg: "アイコン", labelRarity: "レアリティ", labelEffect: "効果タグ" }
+            zh: {
+                title: "卡片資料庫工具", pathLabel: "路徑層級:", btnImport: "匯入 JSON", btnExport: "匯出 JSON",
+                listTitle: "卡片列表", noSelect: "請選擇左側卡片或點擊「+」新增資料", editArea: "編輯區域",
+                btnDelete: "刪除此卡片", labelId: "ID", labelImg: "圖示",
+                labelRarity: "稀有度", labelEffect: "效果標籤", groupName: "卡片名稱",
+                groupDesc: "卡片敘述", descNotice: "注意: {v} 為參數值", previewLabel: "JSON 即時預覽",
+                btnCopyFull: "複製全域 JSON", btnCopySingle: "複製單筆 JSON", msgCopied: "已複製",
+                msgAdded: "已新增", msgDeleted: "已刪除", msgImported: "匯入成功",
+                msgExported: "準備下載", confirmDelete: "確定要刪除此卡片嗎？\n此動作將永久移除資料且無法復原。", noCards: "無資料"
+            },
+            ja: {
+                title: "カードデータベースツール", pathLabel: "パス階層:", btnImport: "JSONインポート", btnExport: "JSONエクスポート",
+                listTitle: "カード一覧", noSelect: "カードを選択してください", editArea: "編集エリア",
+                btnDelete: "このカードを削除", labelId: "ID", labelImg: "アイコン",
+                labelRarity: "レアリティ", labelEffect: "効果タグ", groupName: "カード名",
+                groupDesc: "説明文", descNotice: "注意: {v} はパラメータ値です", previewLabel: "JSON プレビュー",
+                btnCopyFull: "全体コピー", btnCopySingle: "単品コピー", msgCopied: "コピー完了",
+                msgAdded: "追加完了", msgDeleted: "削除完了", msgImported: "インポート完了",
+                msgExported: "準備完了", confirmDelete: "このカードを削除しますか？\n這個操作は取り消せません。", noCards: "データなし"
+            }
         };
 
         let currentLang = 'zh';
         let cards = [];
         let currentIndex = -1;
+        let isFbConnected = false;
+        let fbRef = null;
+        let currentUser = null;
 
         window.onload = () => {
-            updateRaritySelect();
-            updateEffectSelect();
             changeLanguage('zh');
             initResizers();
+            loadFbConfig();
         };
 
         function changeLanguage(lang) {
             currentLang = lang;
-            document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.id === `lang-${lang}`));
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.id === `lang-${lang}`));
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
-                el.innerText = i18n[lang][key];
+                if (i18n[lang][key]) el.innerText = i18n[lang][key];
             });
             updateRaritySelect();
             updateEffectSelect();
@@ -212,41 +413,47 @@
         }
 
         function updateRaritySelect() {
-            const s = document.getElementById('edit-rarity');
-            const cur = s.value; s.innerHTML = '';
-            rarityOptions.forEach(o => {
-                const opt = document.createElement('option');
-                opt.value = o.val; opt.innerText = o[currentLang];
-                s.appendChild(opt);
+            const selectEl = document.getElementById('edit-rarity');
+            const cur = selectEl.value;
+            selectEl.innerHTML = '';
+            rarityOptions.forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.val;
+                o.innerText = opt.lab[currentLang];
+                selectEl.appendChild(o);
             });
-            if (cur) s.value = cur;
+            if (cur) selectEl.value = cur;
         }
 
         function updateEffectSelect() {
-            const s = document.getElementById('edit-effectTag');
-            const cur = s.value; s.innerHTML = '';
-            effectOptions.forEach(o => {
-                const opt = document.createElement('option');
-                opt.value = o.val;
-                const lab = currentLang === 'ja' ? o.ja : o.zh;
-                opt.innerText = `${o.val}：${lab}`;
-                s.appendChild(opt);
+            const selectEl = document.getElementById('edit-effectTag');
+            const cur = selectEl.value;
+            selectEl.innerHTML = '';
+            effectOptions.forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.val;
+                // 格式為 "val：lab"
+                const label = currentLang === 'ja' ? opt.ja : opt.zh;
+                o.innerText = `${opt.val}：${label}`;
+                selectEl.appendChild(o);
             });
-            if (cur) s.value = cur;
+            if (cur) selectEl.value = cur;
         }
 
         function renderList() {
-            const list = document.getElementById('cardList');
+            const listEl = document.getElementById('cardList');
             document.getElementById('cardCount').innerText = cards.length;
-            list.innerHTML = '';
+            listEl.innerHTML = '';
             cards.forEach((card, i) => {
                 const active = i === currentIndex;
                 const div = document.createElement('div');
-                div.className = `p-3 rounded border cursor-pointer transition flex items-center gap-3 ${active ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`;
+                div.className = `p-3 rounded border cursor-pointer transition flex items-center gap-3 ${active ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300'}`;
                 div.onclick = () => loadEditor(i);
-                const name = card.name[currentLang] || card.name.zh || 'No Name';
-                div.innerHTML = `<div class="card-icon-container"><span>${card.img.startsWith('http') ? '<img src="'+card.img+'" class="card-icon-img">' : card.img}</span></div><div class="flex-1 overflow-hidden"><div class="text-[10px] text-gray-400 font-mono">${card.id}</div><div class="font-bold text-sm truncate">${name}</div></div>`;
-                list.appendChild(div);
+                const isUrl = card.img && card.img.startsWith('http');
+                const imgHtml = isUrl ? `<img src="${card.img}" class="card-icon-img" onerror="this.outerHTML='<span>❓</span>'">` : `<span class="card-icon-emoji">${card.img || '❌'}</span>`;
+                const name = (currentLang === 'ja' ? card.name.ja : card.name.zh) || card.name.zh || 'No Name';
+                div.innerHTML = `<div class="card-icon-container">${imgHtml}</div><div class="flex-1 overflow-hidden"><div class="text-[10px] text-gray-400 font-mono truncate">${card.id || '(無 ID)'}</div><div class="font-bold text-sm truncate">${name}</div></div>`;
+                listEl.appendChild(div);
             });
         }
 
@@ -257,7 +464,7 @@
             document.getElementById('editorPanel').classList.remove('hidden');
             document.getElementById('edit-id').value = card.id || '';
             document.getElementById('edit-img').value = card.img || '';
-            document.getElementById('edit-rarity').value = card.rarity || 'Hero';
+            document.getElementById('edit-rarity').value = card.rarity;
             document.getElementById('edit-effectTag').value = card.effectTag || 'ALL';
             document.getElementById('edit-vbase').value = card.valueBase || 0;
             document.getElementById('edit-vpl').value = card.valuePerLevel || 0;
@@ -269,12 +476,14 @@
             updatePreview(); renderList();
         }
 
+        // 修改：切換效果標籤時自動填入敘述
         function handleEffectChange() {
-            const val = document.getElementById('edit-effectTag').value;
-            const opt = effectOptions.find(o => o.val === val);
-            if (opt && val !== 'ALL') {
-                document.getElementById('edit-desc-zh').value = `${opt.zh}+{v}%`;
-                document.getElementById('edit-desc-ja').value = `${opt.ja}+{v}%`;
+            const effectTag = document.getElementById('edit-effectTag').value;
+            const effectObj = effectOptions.find(o => o.val === effectTag);
+            
+            if (effectObj && effectTag !== 'ALL') {
+                document.getElementById('edit-desc-zh').value = `${effectObj.zh} +{v}`;
+                document.getElementById('edit-desc-ja').value = `${effectObj.ja} +{v}`;
             }
             updateCurrentData();
         }
@@ -282,11 +491,11 @@
         function updateCurrentData() {
             if (currentIndex === -1) return;
             cards[currentIndex] = {
-                id: document.getElementById('edit-id').value,
+                id: document.getElementById('edit-id').value, 
                 img: document.getElementById('edit-img').value,
-                rarity: document.getElementById('edit-rarity').value,
+                rarity: document.getElementById('edit-rarity').value, 
                 effectTag: document.getElementById('edit-effectTag').value,
-                valueBase: Number(document.getElementById('edit-vbase').value),
+                valueBase: Number(document.getElementById('edit-vbase').value), 
                 valuePerLevel: Number(document.getElementById('edit-vpl').value),
                 valuePerLevelLv11: Number(document.getElementById('edit-vpl11').value),
                 name: { zh: document.getElementById('edit-name-zh').value, ja: document.getElementById('edit-name-ja').value },
@@ -296,42 +505,106 @@
         }
 
         function addNewCard() {
-            const card = { id: "card_new", img: "❓", rarity: "Hero", effectTag: "ALL", valueBase: 0, valuePerLevel: 0, valuePerLevelLv11: 0, name: { zh: "新卡片", ja: "新カード" }, desc: { zh: "", ja: "" } };
-            cards.unshift(card); loadEditor(0);
+            const newCard = { 
+                id: "", img: "❌", rarity: "Hero", effectTag: "ALL", valueBase: 0, valuePerLevel: 0, valuePerLevelLv11: 0, 
+                name: { zh: "新卡片", ja: "新カード" }, 
+                desc: { zh: "效果內容 +{v}", ja: "効果内容 +{v}" } 
+            };
+            cards.unshift(newCard); 
+            loadEditor(0);
+            showToast(i18n[currentLang].msgAdded);
+            document.getElementById('cardList').scrollTop = 0;
         }
 
         function handleDeleteCard() {
-            if (currentIndex === -1) return;
-            cards.splice(currentIndex, 1); currentIndex = -1;
+            if (currentIndex < 0 || currentIndex >= cards.length) return;
+            const confirmed = confirm(i18n[currentLang].confirmDelete);
+            if (!confirmed) return;
+            cards.splice(currentIndex, 1);
+            currentIndex = -1;
             document.getElementById('editorPanel').classList.add('hidden');
             document.getElementById('noSelection').classList.remove('hidden');
-            renderList(); updatePreview();
+            renderList();
+            updatePreview();
+            showToast(i18n[currentLang].msgDeleted);
         }
 
-        function updatePreview() {
-            const path = document.getElementById('configPath').value.split('.');
-            let output = cards;
-            for (let i = path.length - 1; i >= 0; i--) { output = { [path[i]]: output }; }
-            document.getElementById('jsonPreview').textContent = JSON.stringify(output, null, 2);
+        // --- Firebase & Auth (保持原樣) ---
+        function openFbConfig() { document.getElementById('firebaseModal').style.display = 'flex'; }
+        function closeFbConfig() { document.getElementById('firebaseModal').style.display = 'none'; }
+        function loadFbConfig() { 
+            document.getElementById('fb-apiKey').value = localStorage.getItem('fb_apiKey') || '';
+            document.getElementById('fb-authDomain').value = localStorage.getItem('fb_authDomain') || '';
+            document.getElementById('fb-url').value = localStorage.getItem('fb_db_url') || '';
+            document.getElementById('fb-projectId').value = localStorage.getItem('fb_projectId') || '';
+        }
+        function saveFbConfig() {
+            localStorage.setItem('fb_apiKey', document.getElementById('fb-apiKey').value);
+            localStorage.setItem('fb_authDomain', document.getElementById('fb-authDomain').value);
+            localStorage.setItem('fb_db_url', document.getElementById('fb-url').value);
+            localStorage.setItem('fb_projectId', document.getElementById('fb-projectId').value);
+            showToast("Firebase 設定已儲存");
+            closeFbConfig();
+        }
+        async function handleGitHubAuth() {
+            if (isFbConnected) {
+                try { await firebase.auth().signOut(); if (fbRef) fbRef.off(); isFbConnected = false; currentUser = null; updateStatusUI(false); showToast("已登出"); } catch (e) { showToast("登出失敗"); }
+                return;
+            }
+            const config = { apiKey: document.getElementById('fb-apiKey').value, authDomain: document.getElementById('fb-authDomain').value, databaseURL: document.getElementById('fb-url').value, projectId: document.getElementById('fb-projectId').value };
+            if (!config.apiKey || !config.authDomain || !config.databaseURL) return showToast("請先填寫 Firebase 參數");
+            try {
+                if (firebase.apps.length === 0) firebase.initializeApp(config);
+                const provider = new firebase.auth.GithubAuthProvider();
+                const result = await firebase.auth().signInWithPopup(provider);
+                currentUser = result.user; initDatabaseConn(); isFbConnected = true; updateStatusUI(true); showToast(`GitHub 登入成功`);
+            } catch (e) { showToast(`驗證失敗: ${e.message}`); }
+        }
+        function initDatabaseConn() {
+            const path = document.getElementById('configPath').value.replace(/\./g, '/');
+            fbRef = firebase.database().ref(path);
+            fbRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && Array.isArray(data)) { cards = data; renderList(); updatePreview(); }
+            });
+        }
+        function updateStatusUI(connected) {
+            const statusDot = document.getElementById('connStatus'), btnConn = document.getElementById('btnFbConn'), btnPush = document.getElementById('btnFbPush'), userInfo = document.getElementById('userInfo');
+            if (connected && currentUser) {
+                statusDot.className = 'status-dot bg-green-500'; btnConn.innerHTML = '<span>登出</span>'; btnPush.classList.remove('hidden'); userInfo.innerText = currentUser.displayName || 'User';
+            } else {
+                statusDot.className = 'status-dot bg-gray-500'; btnConn.innerHTML = '<span>登入</span>'; btnPush.classList.add('hidden'); userInfo.innerText = '尚未登入';
+            }
+        }
+        function manualPushFirebase() {
+            if (!isFbConnected || !fbRef) return;
+            fbRef.set(cards).then(() => showToast("雲端已更新")).catch(e => showToast(`失敗: ${e.message}`));
         }
 
-        function copyFullJSON() {
-            const txt = document.getElementById('jsonPreview').textContent;
-            navigator.clipboard.writeText(txt);
-            showToast("Copied!");
+        // --- Utility ---
+        function initResizers() {
+            const vResizer = document.getElementById('v-resizer'), hResizer = document.getElementById('h-resizer');
+            const sidebar = document.getElementById('sidebar'), topPanel = document.getElementById('topPanel'), bottomPanel = document.getElementById('bottomPanel'), editorSection = document.getElementById('editorSection');
+            let isResizingV = false, isResizingH = false;
+            vResizer.addEventListener('mousedown', () => isResizingV = true);
+            hResizer.addEventListener('mousedown', () => isResizingH = true);
+            document.addEventListener('mousemove', (e) => {
+                if (isResizingV) { let w = e.clientX; if (w > 200 && w < 600) sidebar.style.width = `${w}px`; }
+                if (isResizingH) { let rect = editorSection.getBoundingClientRect(); let y = e.clientY - rect.top; if (y > 100 && y < rect.height - 50) { topPanel.style.flex = y / rect.height; bottomPanel.style.flex = 1 - (y / rect.height); } }
+            });
+            document.addEventListener('mouseup', () => isResizingV = isResizingH = false);
         }
-
-        function showToast(m) {
-            const t = document.getElementById('toast'); t.innerText = m; t.style.opacity = 1;
-            setTimeout(() => t.style.opacity = 0, 2000);
+        function formatByPath(arr) {
+            const path = document.getElementById('configPath').value.trim();
+            if (!path) return arr;
+            const keys = path.split('.'), root = {}; let cur = root;
+            keys.forEach((k, i) => { if (i === keys.length - 1) cur[k] = arr; else { cur[k] = {}; cur = cur[k]; } });
+            return root;
         }
-
-        function exportJSON() {
-            const blob = new Blob([document.getElementById('jsonPreview').textContent], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'cards.json'; a.click();
-        }
-
+        function updatePreview() { const pre = document.getElementById('jsonPreview'); if (pre) pre.textContent = JSON.stringify(formatByPath(cards), null, 2); }
+        function copyFullJSON() { copyToClipboard(JSON.stringify(formatByPath(cards), null, 2)); showToast(i18n[currentLang].msgCopied); }
+        function copyCurrentJSON() { if (currentIndex === -1) return; copyToClipboard(JSON.stringify(cards[currentIndex], null, 2)); showToast(i18n[currentLang].msgCopied); }
+        function copyToClipboard(txt) { const el = document.createElement('textarea'); el.value = txt; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); }
         function importJSON() { document.getElementById('fileInput').click(); }
         function handleFileSelect(e) {
             const file = e.target.files[0]; if (!file) return;
@@ -339,29 +612,20 @@
             reader.onload = (ev) => {
                 try {
                     const json = JSON.parse(ev.target.result);
-                    const path = document.getElementById('configPath').value.split('.');
-                    let data = json;
-                    path.forEach(k => { if (data[k]) data = data[k]; });
-                    cards = Array.isArray(data) ? data : [];
-                    renderList(); updatePreview();
-                } catch (err) { alert("Invalid JSON"); }
+                    const path = document.getElementById('configPath').value.trim();
+                    let data = json; if (path) path.split('.').forEach(k => { if (data && data[k]) data = data[k]; });
+                    cards = Array.isArray(data) ? data : []; renderList(); updatePreview();
+                } catch (err) { showToast("Invalid JSON"); }
             };
             reader.readAsText(file);
         }
-
-        function initResizers() {
-            let isResizingV = false, isResizingH = false;
-            document.getElementById('v-resizer').onmousedown = () => isResizingV = true;
-            document.getElementById('h-resizer').onmousedown = () => isResizingH = true;
-            document.onmousemove = (e) => {
-                if (isResizingV) document.getElementById('sidebar').style.width = e.clientX + 'px';
-                if (isResizingH) {
-                    const rect = document.getElementById('editorSection').getBoundingClientRect();
-                    const h = e.clientY - rect.top;
-                    document.getElementById('topPanel').style.flex = `0 0 ${h}px`;
-                }
-            };
-            document.onmouseup = () => isResizingV = isResizingH = false;
+        function exportJSON() {
+            const blob = new Blob([JSON.stringify(formatByPath(cards), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = `cards.json`; a.click();
+        }
+        function showToast(msg) {
+            const t = document.getElementById('toast'); t.innerText = msg; t.classList.replace('opacity-0', 'opacity-100');
+            setTimeout(() => t.classList.replace('opacity-100', 'opacity-0'), 2000);
         }
     </script>
 </body>
