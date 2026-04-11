@@ -383,7 +383,7 @@
                 groupDesc: "説明文", descNotice: "注意: {v} はパラメータ値です", previewLabel: "JSON プレビュー",
                 btnCopyFull: "全体コピー", btnCopySingle: "単品コピー", msgCopied: "コピー完了",
                 msgAdded: "追加完了", msgDeleted: "削除完了", msgImported: "インポート完了",
-                msgExported: "準備完了", confirmDelete: "このカードを削除しますか？\nこの操作は取り消せません。", noCards: "データなし"
+                msgExported: "準備完了", confirmDelete: "このカードを削除しますか？\n這個操作は取り消せません。", noCards: "データなし"
             }
         };
 
@@ -417,15 +417,11 @@
             localStorage.setItem('fb_projectId', document.getElementById('fb-projectId').value);
             showToast("Firebase 設定已儲存");
             closeFbConfig();
-            
-            // 如果已連線，提醒需要重連
             if (isFbConnected) showToast("參數已變更，請重新登入連線");
         }
 
-        // GitHub 登入邏輯
         async function handleGitHubAuth() {
             if (isFbConnected) {
-                // 執行登出
                 try {
                     await firebase.auth().signOut();
                     if (fbRef) fbRef.off();
@@ -439,7 +435,6 @@
                 return;
             }
 
-            // 執行登入
             const config = {
                 apiKey: document.getElementById('fb-apiKey').value,
                 authDomain: document.getElementById('fb-authDomain').value,
@@ -452,24 +447,17 @@
             }
 
             try {
-                // 初始化 Firebase (如果尚未初始化)
                 if (firebase.apps.length === 0) {
                     firebase.initializeApp(config);
                 }
-
                 const provider = new firebase.auth.GithubAuthProvider();
-                
                 showToast("正在前往 GitHub 驗證...");
                 const result = await firebase.auth().signInWithPopup(provider);
                 currentUser = result.user;
-                
-                // 登入成功後初始化資料庫連線
                 initDatabaseConn();
-                
                 isFbConnected = true;
                 updateStatusUI(true);
                 showToast(`GitHub 登入成功: ${currentUser.displayName || currentUser.email}`);
-                
             } catch (e) {
                 console.error(e);
                 showToast(`驗證失敗: ${e.message}`);
@@ -479,8 +467,6 @@
         function initDatabaseConn() {
             const path = document.getElementById('configPath').value.replace(/\./g, '/');
             fbRef = firebase.database().ref(path);
-            
-            // 監聽資料
             fbRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data && Array.isArray(data)) {
@@ -499,7 +485,6 @@
             const btnConn = document.getElementById('btnFbConn');
             const btnPush = document.getElementById('btnFbPush');
             const userInfo = document.getElementById('userInfo');
-            
             if (connected && currentUser) {
                 statusDot.className = 'status-dot bg-green-500';
                 btnConn.innerHTML = '<span>登出</span>';
@@ -523,7 +508,6 @@
             fbRef.set(cards).then(() => showToast("雲端資料已手動更新！")).catch(e => showToast(`推送失敗: ${e.message}`));
         }
 
-        // 基本介面功能保持不變
         function changeLanguage(lang) {
             currentLang = lang;
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.id === `lang-${lang}`));
@@ -638,15 +622,18 @@
             updatePreview(); renderList();
         }
 
+        // 修改此處：新增卡片放在最上方 (unshift)
         function addNewCard() {
             const newCard = { 
                 id: "", img: "❌", rarity: "Hero", effectTag: "ALL", valueBase: 0, valuePerLevel: 0, valuePerLevelLv11: 0, 
                 name: { zh: "新卡片", ja: "新カード" }, 
                 desc: { zh: "效果內容 +{v}", ja: "効果内容 +{v}" } 
             };
-            cards.push(newCard);
-            loadEditor(cards.length - 1); 
+            cards.unshift(newCard); // 從陣列開頭插入
+            loadEditor(0); // 載入索引為 0 的新卡片
             showToast(i18n[currentLang].msgAdded);
+            // 自動滾動到頂部
+            document.getElementById('cardList').scrollTop = 0;
         }
 
         function handleDeleteCard() {
@@ -660,7 +647,6 @@
             renderList();
             updatePreview();
             showToast(i18n[currentLang].msgDeleted);
-            if (isFbConnected && fbRef) fbRef.set(cards);
         }
 
         function formatByPath(arr) {
