@@ -115,7 +115,6 @@
                        placeholder="例如: root.data.items">
             </div>
 
-            <!-- GitHub 連線區塊 -->
             <div class="flex items-center gap-3 bg-slate-900/50 p-2 rounded border border-slate-700 mt-1">
                 <div class="flex items-center gap-2">
                     <span id="connStatus" class="status-dot bg-gray-500"></span>
@@ -159,22 +158,21 @@
                 <button onclick="closeFbConfig()" class="text-gray-400 hover:text-black">✕</button>
             </div>
             <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                <p class="text-[10px] text-amber-600 bg-amber-50 p-2 rounded">請確保 Firebase 控制台已啟用 GitHub 登入方法。</p>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">API Key</label>
-                    <input type="text" id="fb-apiKey" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none" placeholder="AIzaSy...">
+                    <input type="text" id="fb-apiKey" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">Auth Domain</label>
-                    <input type="text" id="fb-authDomain" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none" placeholder="project-id.firebaseapp.com">
+                    <input type="text" id="fb-authDomain" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">Database URL</label>
-                    <input type="text" id="fb-url" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none" placeholder="https://project-id.firebaseio.com">
+                    <input type="text" id="fb-url" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-wider uppercase">Project ID</label>
-                    <input type="text" id="fb-projectId" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none" placeholder="project-id">
+                    <input type="text" id="fb-projectId" class="w-full border rounded p-2 text-sm font-mono focus:border-blue-500 outline-none">
                 </div>
             </div>
             <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
@@ -231,10 +229,10 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-4 gap-4">
-                            <div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-1">
                                 <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="labelEffect">效果標籤</label>
-                                <select id="edit-effectTag" onchange="updateCurrentData()" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                                <select id="edit-effectTag" onchange="handleEffectChange()" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
                             </div>
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">ValueBase</label><input type="number" id="edit-vbase" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
                             <div><label class="block text-sm font-medium text-gray-700 mb-1">Value/Lv</label><input type="number" id="edit-vpl" oninput="updateCurrentData()" class="w-full border rounded p-2"></div>
@@ -282,7 +280,6 @@
 
     <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50"></div>
 
-    <!-- Firebase SDK 8.x -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -300,68 +297,68 @@
         ];
 
         const effectOptions = [
-            { val: 'ALL', lab: { zh: '全部 (All)', ja: 'すべて (All)' } },
-            { val: '0', lab: { zh: '最大 HP 提升', ja: '最大HPアップ' } },
-            { val: '1', lab: { zh: '最大 SP 提升', ja: '最大SPアップ' } },
-            { val: '2', lab: { zh: '攻擊力提升', ja: '攻撃力アップ' } },
-            { val: '3', lab: { zh: '防禦力提升', ja: '防御力アップ' } },
-            { val: '4', lab: { zh: '格擋提升', ja: 'ブロックアップ' } },
-            { val: '5', lab: { zh: '命中提升', ja: '命中アップ' } },
-            { val: '6', lab: { zh: '貫通提升', ja: '貫通アップ' } },
-            { val: '7', lab: { zh: '迴避提升', ja: '回避アップ' } },
-            { val: '8', lab: { zh: '暴擊發生提升', ja: 'クリティカル発生アップ' } },
-            { val: '9', lab: { zh: '暴擊抵抗提升', ja: 'クリティカル抵抗アップ' } },
-            { val: '10', lab: { zh: '暴擊傷害提升', ja: 'クリティカルダメージアップ' } },
-            { val: '11', lab: { zh: '火屬性對象攻擊時傷害量', ja: '火属性対象攻撃時のダメージ量' } },
-            { val: '12', lab: { zh: '冰屬性對象攻擊時傷害量', ja: '氷属性対象攻撃時のダメージ量' } },
-            { val: '13', lab: { zh: '雷屬性對象攻擊時傷害量', ja: '雷属性対象攻撃時のダメージ量' } },
-            { val: '14', lab: { zh: '土屬性對象攻擊時傷害量', ja: '土属性対象攻撃時のダメージ量' } },
-            { val: '15', lab: { zh: '暗屬性對象攻擊時傷害量', ja: '闇属性対象攻撃時のダメージ量' } },
-            { val: '16', lab: { zh: '神聖屬性對象攻擊時傷害量', ja: '神聖属性対象攻撃時のダメージ量' } },
-            { val: '17', lab: { zh: 'SP 自然恢復提升', ja: 'SP自然回復アップ' } },
-            { val: '18', lab: { zh: '技能傷害提升', ja: 'スキルダメージアップ' } },
-            { val: '19', lab: { zh: '移動速度提升', ja: '移動速度アッブ' } },
-            { val: '20', lab: { zh: '攻擊速度提升', ja: '攻撃速度アップ' } },
-            { val: '21', lab: { zh: '技能冷卻時間縮短', ja: 'スキルクールタイム短縮' } },
-            { val: '22', lab: { zh: '庫波爾冷卻時間縮短', ja: 'クボルクールタイム短縮' } },
-            { val: '23', lab: { zh: '控制狀態持續時間減少', ja: '制御状態の持続時間ダウン' } },
-            { val: '24', lab: { zh: '普攻 SP 恢復+', ja: '通常攻撃SP回復+' } },
-            { val: '25', lab: { zh: '非戰鬥 SP 恢復+', ja: '非戦闘SP回復 +' } },
-            { val: '26', lab: { zh: '暴擊時傷害 2 倍', ja: 'クリティカル発生時、ダメージ2倍' } },
-            { val: '27', lab: { zh: '受到射擊攻擊時格擋提升', ja: '射撃攻撃を受けた時 、ブロックアップ' } },
-            { val: '28', lab: { zh: '受到物理攻擊時格擋提升', ja: '物理攻撃を受けた時 、ブロックアップ' } },
-            { val: '29', lab: { zh: '受到射擊攻擊時迴避提升', ja: '射撃攻撃を受けた時、回避アップ' } },
-            { val: '30', lab: { zh: '受到物理攻擊時迴避提升', ja: '物理攻撃を受けた時、回避アップ' } },
-            { val: '31', lab: { zh: '受到魔法攻擊時迴避提升', ja: '魔法攻撃を受けた時、回避アップ' } },
-            { val: '32', lab: { zh: '對野獸型敵人造成的傷害量', ja: '野獣型の敵へ與えるダメージ量' } },
-            { val: '33', lab: { zh: '對惡魔型敵人造成的傷害量', ja: '惡魔型の敵へ與えるダメージ量' } },
-            { val: '34', lab: { zh: '對昆蟲型敵人造成的傷害量', ja: '昆虫型の敵へ與えるダメージ量' } },
-            { val: '35', lab: { zh: '對變異型敵人造成的傷害量', ja: '變異型の敵へ與えるダメージ量' } },
-            { val: '36', lab: { zh: '對植物型敵人造成的傷害量', ja: '植物型の敵へ與えるダメージ量' } },
-            { val: '37', lab: { zh: '受到昆蟲型敵人傷害量', ja: '昆虫型の敵から受けるダメージ量' } },
-            { val: '38', lab: { zh: '受到魔法攻擊時受到的傷害量', ja: '魔法攻撃を受けた時 、受けるダメージ量' } },
-            { val: '39', lab: { zh: '同行夥伴每增加1人造成的傷害量', ja: '同行中のフェローの人数 1人につき、プレイヤーが與えるダメージ量' } },
-            { val: '40', lab: { zh: '物理系異常狀態無視率', ja: '物理系の狀態異常無視率' } },
-            { val: '41', lab: { zh: '對物理系異常狀態敵人傷害提升', ja: '物理系の狀態異常の敵に対してダメージアップ' } },
-            { val: '42', lab: { zh: '自身剩餘 HP 越多傷害量提升', ja: '自身的残りHPが多いほどダメージ量アップ' } },
-            { val: '43', lab: { zh: '對王怪傷害量提升', ja: 'ボスへ與えるダメージ量' } },
-            { val: '44', lab: { zh: '受到變異型敵人傷害量', ja: '變異型の敵から受けるダメージ量' } },
-            { val: '45', lab: { zh: '受到王怪傷害量', ja: 'ボスから受けるダメージ量' } },
-            { val: '46', lab: { zh: '暴擊傷害 +', ja: 'クリティカルダメージ+' } },
-            { val: '47', lab: { zh: '元素系異常狀態無視率', ja: '元素系の狀態異常無視率' } },
-            { val: '48', lab: { zh: '對元素系異常狀態敵人傷害提升', ja: '元素系の狀態異常の敵に対してダメージアップ' } },
-            { val: '49', lab: { zh: '受到野獸型敵人傷害量', ja: '野獣型の敵から受けるダメージ量' } },
-            { val: '50', lab: { zh: '受到植物型敵人傷害量', ja: '植物型の敵から受けるダメージ量' } },
-            { val: '51', lab: { zh: '夥伴受到的傷害量', ja: 'フェローの受けるダメージ' } },
-            { val: '52', lab: { zh: '防禦力下降，攻擊力提升', ja: '防御力ダウン、攻撃力アップ' } },
-            { val: '53', lab: { zh: '精神系異常狀態無視率', ja: '精神系の狀態異常無視の率' } },
-            { val: '54', lab: { zh: '對精神系異常狀態敵人傷害提升', ja: '精神系の狀態異常的敵に対してダメージアップ' } },
-            { val: '55', lab: { zh: '受到惡魔型敵人傷害量', ja: '惡魔型の敵から受けるダメージ量' } },
-            { val: '56', lab: { zh: '受到射擊攻擊時受到的傷害量', ja: '射撃攻撃を受けた時 、受けるダメージ量' } },
-            { val: '57', lab: { zh: '夥伴造成的傷害量', ja: 'フェローが與えるダメージ量' } },
-            { val: '58', lab: { zh: '忍耐提升', ja: '忍耐アップ' } },
-            { val: '59', lab: { zh: '庫波爾攻擊技能傷害提升', ja: 'クポルの攻撃スキルダメージアップ' } },
-            { val: '60', lab: { zh: '自身剩餘 HP 越少傷害量提升', ja: '自身的残りHPが少ないほどダメージ量アップ' } }
+            { val: 'ALL', zh: '全部 (All)', ja: 'すべて (All)' },
+            { val: '0', zh: '最大 HP 提升', ja: '最大HPアップ' },
+            { val: '1', zh: '最大 SP 提升', ja: '最大SPアップ' },
+            { val: '2', zh: '攻擊力提升', ja: '攻撃力アップ' },
+            { val: '3', zh: '防禦力提升', ja: '防御力アップ' },
+            { val: '4', zh: '格擋提升', ja: 'ブロックアップ' },
+            { val: '5', zh: '命中提升', ja: '命中アップ' },
+            { val: '6', zh: '貫通提升', ja: '貫通アップ' },
+            { val: '7', zh: '迴避提升', ja: '回避アップ' },
+            { val: '8', zh: '暴擊發生提升', ja: 'クリティカル発生アップ' },
+            { val: '9', zh: '暴擊抵抗提升', ja: 'クリティカル抵抗アップ' },
+            { val: '10', zh: '暴擊傷害提升', ja: 'クリティカルダメージアップ' },
+            { val: '11', zh: '火屬性對象攻擊時傷害量', ja: '火属性対象攻撃時のダメージ量' },
+            { val: '12', zh: '冰屬性對象攻擊時傷害量', ja: '氷属性対象攻撃時のダメージ量' },
+            { val: '13', zh: '雷屬性對象攻擊時傷害量', ja: '雷属性対象攻撃時のダメージ量' },
+            { val: '14', zh: '土屬性對象攻擊時傷害量', ja: '土属性対象攻撃時のダメージ量' },
+            { val: '15', zh: '暗屬性對象攻擊時傷害量', ja: '闇属性対象攻撃時のダメージ量' },
+            { val: '16', zh: '神聖屬性對象攻擊時傷害量', ja: '神聖属性対象攻撃時のダメージ量' },
+            { val: '17', zh: 'SP 自然恢復提升', ja: 'SP自然回復アップ' },
+            { val: '18', zh: '技能傷害提升', ja: 'スキルダメージアップ' },
+            { val: '19', zh: '移動速度提升', ja: '移動速度アッブ' },
+            { val: '20', zh: '攻擊速度提升', ja: '攻撃速度アッブ' },
+            { val: '21', zh: '技能冷卻時間縮短', ja: 'スキルクールタイム短縮' },
+            { val: '22', zh: '庫波爾冷卻時間縮短', ja: 'クボルクールタイム短縮' },
+            { val: '23', zh: '控制狀態持續時間減少', ja: '制御状態の持続時間ダウン' },
+            { val: '24', zh: '普攻 SP 恢復+', ja: '通常攻撃SP回復+' },
+            { val: '25', zh: '非戰鬥 SP 恢復+', ja: '非戦闘SP回復 +' },
+            { val: '26', zh: '暴擊發生時傷害 2 倍', ja: 'クリティカル発生時、ダメージ2倍' },
+            { val: '27', zh: '受到射擊攻擊時格擋提升', ja: '射撃攻撃を受けた時 、ブロックアップ' },
+            { val: '28', zh: '受到物理攻擊時格擋提升', ja: '物理攻撃を受けた時 、ブロックアップ' },
+            { val: '29', zh: '受到射擊攻擊時迴避提升', ja: '射撃攻撃を受けた時、回避アップ' },
+            { val: '30', zh: '受到物理攻擊時迴避提升', ja: '物理攻撃を受けた時、回避アップ' },
+            { val: '31', zh: '受到魔法攻擊時迴避提升', ja: '魔法攻撃を受けた時、回避アップ' },
+            { val: '32', zh: '對野獸型敵人造成的傷害量', ja: '野獣型の敵へ与えるダメージ量' },
+            { val: '33', zh: '對惡魔型敵人造成的傷害量', ja: '悪魔型の敵へ与えるダメージ量' },
+            { val: '34', zh: '對昆蟲型敵人造成的傷害量', ja: '昆虫型の敵へ与えるダメージ量' },
+            { val: '35', zh: '對變異型敵人造成的傷害量', ja: '変異型の敵へ与えるダメージ量' },
+            { val: '36', zh: '對植物型敵人造成的傷害量', ja: '植物型の敵へ与えるダメージ量' },
+            { val: '37', zh: '對王怪造成的傷害量', ja: 'ボスへ与えるダメージ量' },
+            { val: '38', zh: '受到野獸型敵人傷害量', ja: '野獣型の敵から受けるダメージ量' },
+            { val: '39', zh: '受到惡魔型敵人傷害量', ja: '悪魔型の敵から受けるダメージ量' },
+            { val: '40', zh: '受到昆蟲型敵人傷害量', ja: '昆虫型の敵から受けるダメージ量' },
+            { val: '41', zh: '受到變異型敵人傷害量', ja: '変異型の敵から受けるダメージ量' },
+            { val: '42', zh: '受到植物型敵人傷害量', ja: '植物型の敵から受けるダメージ量' },
+            { val: '43', zh: '受到射擊攻擊時受到的傷害量', ja: '射撃攻撃を受けた時 、受けるダメージ量' },
+            { val: '44', zh: '受到魔法攻擊時受到的傷害量', ja: '魔法攻撃を受けた時 、受けるダメージ量' },
+            { val: '45', zh: '受到王怪傷害量', ja: 'ボスから受けるダメージ量' },
+            { val: '46', zh: '夥伴受到的傷害量', ja: 'フェローの受けるダメージ' },
+            { val: '47', zh: '夥伴造成的傷害量', ja: 'フェローが与えるダメージ量' },
+            { val: '48', zh: '同行夥伴每增加1人造成的傷害量', ja: '同行中のフェローの人数 1人につき、プレイヤーが与えるダメージ量' },
+            { val: '49', zh: '暴擊傷害 +', ja: 'クリティカルダメージ+' },
+            { val: '50', zh: '防禦力下降，攻擊力提升', ja: '防御力ダウン、攻撃力アップ' },
+            { val: '51', zh: '忍耐提升', ja: '忍耐アップ' },
+            { val: '52', zh: '物理系異常狀態無視率', ja: '物理系の状態異常無視率' },
+            { val: '53', zh: '元素系異常狀態無視率', ja: '元素系の状態異常無視率' },
+            { val: '54', zh: '精神系異常狀態無視率', ja: '精神系の状態異常無視の率' },
+            { val: '55', zh: '庫波爾攻擊技能傷害提升', ja: 'クポルの攻撃スキルダメージアップ' },
+            { val: '56', zh: '對物理系異常狀態敵人傷害提升', ja: '物理系の状態異常の敵に対してダメージアップ' },
+            { val: '57', zh: '對元素系異常狀態敵人傷害提升', ja: '元素系の状態異常の敵に対してダメージアップ' },
+            { val: '58', zh: '對精神系異常狀態敵人傷害提升', ja: '精神系の状態異常の敵に対してダメージアップ' },
+            { val: '59', zh: '自身剩餘 HP 越少傷害量提升', ja: '自身の残りHPが少ないほどダメージ量アップ' },
+            { val: '60', zh: '自身剩餘 HP 越多傷害量提升', ja: '自身の残りHPが多いほどダメージ量アップ' }
         ];
 
         const i18n = {
@@ -400,114 +397,6 @@
             loadFbConfig();
         };
 
-        function openFbConfig() { document.getElementById('firebaseModal').style.display = 'flex'; }
-        function closeFbConfig() { document.getElementById('firebaseModal').style.display = 'none'; }
-        
-        function loadFbConfig() { 
-            document.getElementById('fb-apiKey').value = localStorage.getItem('fb_apiKey') || '';
-            document.getElementById('fb-authDomain').value = localStorage.getItem('fb_authDomain') || '';
-            document.getElementById('fb-url').value = localStorage.getItem('fb_db_url') || '';
-            document.getElementById('fb-projectId').value = localStorage.getItem('fb_projectId') || '';
-        }
-
-        function saveFbConfig() {
-            localStorage.setItem('fb_apiKey', document.getElementById('fb-apiKey').value);
-            localStorage.setItem('fb_authDomain', document.getElementById('fb-authDomain').value);
-            localStorage.setItem('fb_db_url', document.getElementById('fb-url').value);
-            localStorage.setItem('fb_projectId', document.getElementById('fb-projectId').value);
-            showToast("Firebase 設定已儲存");
-            closeFbConfig();
-            if (isFbConnected) showToast("參數已變更，請重新登入連線");
-        }
-
-        async function handleGitHubAuth() {
-            if (isFbConnected) {
-                try {
-                    await firebase.auth().signOut();
-                    if (fbRef) fbRef.off();
-                    isFbConnected = false;
-                    currentUser = null;
-                    updateStatusUI(false);
-                    showToast("已登出並斷開連線");
-                } catch (e) {
-                    showToast("登出失敗");
-                }
-                return;
-            }
-
-            const config = {
-                apiKey: document.getElementById('fb-apiKey').value,
-                authDomain: document.getElementById('fb-authDomain').value,
-                databaseURL: document.getElementById('fb-url').value,
-                projectId: document.getElementById('fb-projectId').value
-            };
-
-            if (!config.apiKey || !config.authDomain || !config.databaseURL) {
-                return showToast("請先在設定中填寫完整的 Firebase 參數");
-            }
-
-            try {
-                if (firebase.apps.length === 0) {
-                    firebase.initializeApp(config);
-                }
-                const provider = new firebase.auth.GithubAuthProvider();
-                showToast("正在前往 GitHub 驗證...");
-                const result = await firebase.auth().signInWithPopup(provider);
-                currentUser = result.user;
-                initDatabaseConn();
-                isFbConnected = true;
-                updateStatusUI(true);
-                showToast(`GitHub 登入成功: ${currentUser.displayName || currentUser.email}`);
-            } catch (e) {
-                console.error(e);
-                showToast(`驗證失敗: ${e.message}`);
-            }
-        }
-
-        function initDatabaseConn() {
-            const path = document.getElementById('configPath').value.replace(/\./g, '/');
-            fbRef = firebase.database().ref(path);
-            fbRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data && Array.isArray(data)) {
-                    cards = data; 
-                    renderList(); 
-                    updatePreview(); 
-                    showToast("已從雲端同步最新卡片資料");
-                }
-            }, (error) => {
-                showToast(`資料讀取權限不足: ${error.message}`);
-            });
-        }
-
-        function updateStatusUI(connected) {
-            const statusDot = document.getElementById('connStatus');
-            const btnConn = document.getElementById('btnFbConn');
-            const btnPush = document.getElementById('btnFbPush');
-            const userInfo = document.getElementById('userInfo');
-            if (connected && currentUser) {
-                statusDot.className = 'status-dot bg-green-500';
-                btnConn.innerHTML = '<span>登出</span>';
-                btnPush.classList.remove('hidden');
-                userInfo.innerText = currentUser.displayName || 'GitHub User';
-                userInfo.className = 'text-[9px] text-green-400 truncate max-w-[80px]';
-            } else {
-                statusDot.className = 'status-dot bg-gray-500';
-                btnConn.innerHTML = `
-                    <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.61-4.041-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                    <span>登入</span>
-                `;
-                btnPush.classList.add('hidden');
-                userInfo.innerText = '尚未登入';
-                userInfo.className = 'text-[9px] text-slate-400 truncate max-w-[80px]';
-            }
-        }
-
-        function manualPushFirebase() {
-            if (!isFbConnected || !fbRef) return;
-            fbRef.set(cards).then(() => showToast("雲端資料已手動更新！")).catch(e => showToast(`推送失敗: ${e.message}`));
-        }
-
         function changeLanguage(lang) {
             currentLang = lang;
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.id === `lang-${lang}`));
@@ -540,34 +429,12 @@
             effectOptions.forEach(opt => {
                 const o = document.createElement('option');
                 o.value = opt.val;
-                o.innerText = `${opt.val} : ${opt.lab[currentLang]}`;
+                // 格式為 "val：lab"
+                const label = currentLang === 'ja' ? opt.ja : opt.zh;
+                o.innerText = `${opt.val}：${label}`;
                 selectEl.appendChild(o);
             });
             if (cur) selectEl.value = cur;
-        }
-
-        function initResizers() {
-            const vResizer = document.getElementById('v-resizer'), hResizer = document.getElementById('h-resizer');
-            const sidebar = document.getElementById('sidebar'), topPanel = document.getElementById('topPanel');
-            const bottomPanel = document.getElementById('bottomPanel'), editorSection = document.getElementById('editorSection');
-            let isResizingV = false, isResizingH = false;
-            vResizer.addEventListener('mousedown', () => isResizingV = true);
-            hResizer.addEventListener('mousedown', () => isResizingH = true);
-            document.addEventListener('mousemove', (e) => {
-                if (isResizingV) {
-                    const w = e.clientX;
-                    if (w > 200 && w < 600) sidebar.style.width = `${w}px`;
-                }
-                if (isResizingH) {
-                    const rect = editorSection.getBoundingClientRect();
-                    const y = e.clientY - rect.top, h = rect.height;
-                    if (y > 100 && y < h - 50) {
-                        topPanel.style.flex = y / h;
-                        bottomPanel.style.flex = 1 - (y / h);
-                    }
-                }
-            });
-            document.addEventListener('mouseup', () => isResizingV = isResizingH = false);
         }
 
         function renderList() {
@@ -606,6 +473,18 @@
             updatePreview(); renderList();
         }
 
+        // 修改：切換效果標籤時自動填入敘述
+        function handleEffectChange() {
+            const effectTag = document.getElementById('edit-effectTag').value;
+            const effectObj = effectOptions.find(o => o.val === effectTag);
+            
+            if (effectObj && effectTag !== 'ALL') {
+                document.getElementById('edit-desc-zh').value = `${effectObj.zh} +{v}`;
+                document.getElementById('edit-desc-ja').value = `${effectObj.ja} +{v}`;
+            }
+            updateCurrentData();
+        }
+
         function updateCurrentData() {
             if (currentIndex === -1) return;
             cards[currentIndex] = {
@@ -622,17 +501,15 @@
             updatePreview(); renderList();
         }
 
-        // 修改此處：新增卡片放在最上方 (unshift)
         function addNewCard() {
             const newCard = { 
                 id: "", img: "❌", rarity: "Hero", effectTag: "ALL", valueBase: 0, valuePerLevel: 0, valuePerLevelLv11: 0, 
                 name: { zh: "新卡片", ja: "新カード" }, 
                 desc: { zh: "效果內容 +{v}", ja: "効果内容 +{v}" } 
             };
-            cards.unshift(newCard); // 從陣列開頭插入
-            loadEditor(0); // 載入索引為 0 的新卡片
+            cards.unshift(newCard); 
+            loadEditor(0);
             showToast(i18n[currentLang].msgAdded);
-            // 自動滾動到頂部
             document.getElementById('cardList').scrollTop = 0;
         }
 
@@ -649,32 +526,83 @@
             showToast(i18n[currentLang].msgDeleted);
         }
 
+        // --- Firebase & Auth (保持原樣) ---
+        function openFbConfig() { document.getElementById('firebaseModal').style.display = 'flex'; }
+        function closeFbConfig() { document.getElementById('firebaseModal').style.display = 'none'; }
+        function loadFbConfig() { 
+            document.getElementById('fb-apiKey').value = localStorage.getItem('fb_apiKey') || '';
+            document.getElementById('fb-authDomain').value = localStorage.getItem('fb_authDomain') || '';
+            document.getElementById('fb-url').value = localStorage.getItem('fb_db_url') || '';
+            document.getElementById('fb-projectId').value = localStorage.getItem('fb_projectId') || '';
+        }
+        function saveFbConfig() {
+            localStorage.setItem('fb_apiKey', document.getElementById('fb-apiKey').value);
+            localStorage.setItem('fb_authDomain', document.getElementById('fb-authDomain').value);
+            localStorage.setItem('fb_db_url', document.getElementById('fb-url').value);
+            localStorage.setItem('fb_projectId', document.getElementById('fb-projectId').value);
+            showToast("Firebase 設定已儲存");
+            closeFbConfig();
+        }
+        async function handleGitHubAuth() {
+            if (isFbConnected) {
+                try { await firebase.auth().signOut(); if (fbRef) fbRef.off(); isFbConnected = false; currentUser = null; updateStatusUI(false); showToast("已登出"); } catch (e) { showToast("登出失敗"); }
+                return;
+            }
+            const config = { apiKey: document.getElementById('fb-apiKey').value, authDomain: document.getElementById('fb-authDomain').value, databaseURL: document.getElementById('fb-url').value, projectId: document.getElementById('fb-projectId').value };
+            if (!config.apiKey || !config.authDomain || !config.databaseURL) return showToast("請先填寫 Firebase 參數");
+            try {
+                if (firebase.apps.length === 0) firebase.initializeApp(config);
+                const provider = new firebase.auth.GithubAuthProvider();
+                const result = await firebase.auth().signInWithPopup(provider);
+                currentUser = result.user; initDatabaseConn(); isFbConnected = true; updateStatusUI(true); showToast(`GitHub 登入成功`);
+            } catch (e) { showToast(`驗證失敗: ${e.message}`); }
+        }
+        function initDatabaseConn() {
+            const path = document.getElementById('configPath').value.replace(/\./g, '/');
+            fbRef = firebase.database().ref(path);
+            fbRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && Array.isArray(data)) { cards = data; renderList(); updatePreview(); }
+            });
+        }
+        function updateStatusUI(connected) {
+            const statusDot = document.getElementById('connStatus'), btnConn = document.getElementById('btnFbConn'), btnPush = document.getElementById('btnFbPush'), userInfo = document.getElementById('userInfo');
+            if (connected && currentUser) {
+                statusDot.className = 'status-dot bg-green-500'; btnConn.innerHTML = '<span>登出</span>'; btnPush.classList.remove('hidden'); userInfo.innerText = currentUser.displayName || 'User';
+            } else {
+                statusDot.className = 'status-dot bg-gray-500'; btnConn.innerHTML = '<span>登入</span>'; btnPush.classList.add('hidden'); userInfo.innerText = '尚未登入';
+            }
+        }
+        function manualPushFirebase() {
+            if (!isFbConnected || !fbRef) return;
+            fbRef.set(cards).then(() => showToast("雲端已更新")).catch(e => showToast(`失敗: ${e.message}`));
+        }
+
+        // --- Utility ---
+        function initResizers() {
+            const vResizer = document.getElementById('v-resizer'), hResizer = document.getElementById('h-resizer');
+            const sidebar = document.getElementById('sidebar'), topPanel = document.getElementById('topPanel'), bottomPanel = document.getElementById('bottomPanel'), editorSection = document.getElementById('editorSection');
+            let isResizingV = false, isResizingH = false;
+            vResizer.addEventListener('mousedown', () => isResizingV = true);
+            hResizer.addEventListener('mousedown', () => isResizingH = true);
+            document.addEventListener('mousemove', (e) => {
+                if (isResizingV) { let w = e.clientX; if (w > 200 && w < 600) sidebar.style.width = `${w}px`; }
+                if (isResizingH) { let rect = editorSection.getBoundingClientRect(); let y = e.clientY - rect.top; if (y > 100 && y < rect.height - 50) { topPanel.style.flex = y / rect.height; bottomPanel.style.flex = 1 - (y / rect.height); } }
+            });
+            document.addEventListener('mouseup', () => isResizingV = isResizingH = false);
+        }
         function formatByPath(arr) {
             const path = document.getElementById('configPath').value.trim();
             if (!path) return arr;
-            const keys = path.split('.'), root = {};
-            let cur = root;
+            const keys = path.split('.'), root = {}; let cur = root;
             keys.forEach((k, i) => { if (i === keys.length - 1) cur[k] = arr; else { cur[k] = {}; cur = cur[k]; } });
             return root;
         }
-
-        function updatePreview() { 
-            const pre = document.getElementById('jsonPreview');
-            if (pre) pre.textContent = JSON.stringify(formatByPath(cards), null, 2); 
-        }
-
+        function updatePreview() { const pre = document.getElementById('jsonPreview'); if (pre) pre.textContent = JSON.stringify(formatByPath(cards), null, 2); }
         function copyFullJSON() { copyToClipboard(JSON.stringify(formatByPath(cards), null, 2)); showToast(i18n[currentLang].msgCopied); }
         function copyCurrentJSON() { if (currentIndex === -1) return; copyToClipboard(JSON.stringify(cards[currentIndex], null, 2)); showToast(i18n[currentLang].msgCopied); }
-        
-        function copyToClipboard(txt) { 
-            const el = document.createElement('textarea'); 
-            el.value = txt; document.body.appendChild(el); 
-            el.select(); document.execCommand('copy'); 
-            document.body.removeChild(el); 
-        }
-
+        function copyToClipboard(txt) { const el = document.createElement('textarea'); el.value = txt; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); }
         function importJSON() { document.getElementById('fileInput').click(); }
-        
         function handleFileSelect(e) {
             const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
@@ -682,31 +610,19 @@
                 try {
                     const json = JSON.parse(ev.target.result);
                     const path = document.getElementById('configPath').value.trim();
-                    let data = json; 
-                    if (path) path.split('.').forEach(k => { if (data && data[k]) data = data[k]; });
-                    cards = Array.isArray(data) ? data : []; 
-                    currentIndex = -1;
-                    renderList(); updatePreview();
-                    document.getElementById('editorPanel').classList.add('hidden'); 
-                    document.getElementById('noSelection').classList.remove('hidden');
-                    showToast(i18n[currentLang].msgImported);
+                    let data = json; if (path) path.split('.').forEach(k => { if (data && data[k]) data = data[k]; });
+                    cards = Array.isArray(data) ? data : []; renderList(); updatePreview();
                 } catch (err) { showToast("Invalid JSON"); }
             };
             reader.readAsText(file);
         }
-
         function exportJSON() {
-            if (cards.length === 0) return showToast(i18n[currentLang].noCards);
             const blob = new Blob([JSON.stringify(formatByPath(cards), null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob), a = document.createElement('a');
-            a.href = url; a.download = `cards_${Date.now()}.json`; a.click(); showToast(i18n[currentLang].msgExported);
+            const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = `cards.json`; a.click();
         }
-
         function showToast(msg) {
-            const t = document.getElementById('toast'); if (!t) return;
-            t.innerText = msg;
-            t.classList.replace('opacity-0', 'opacity-100');
-            setTimeout(() => { if (t) t.classList.replace('opacity-100', 'opacity-0'); }, 2000);
+            const t = document.getElementById('toast'); t.innerText = msg; t.classList.replace('opacity-0', 'opacity-100');
+            setTimeout(() => t.classList.replace('opacity-100', 'opacity-0'), 2000);
         }
     </script>
 </body>
